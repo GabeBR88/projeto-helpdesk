@@ -11,14 +11,7 @@ import TituloSite from "../components/title";
 import TopBar from "../components/topbar";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
-
-interface MeuChamado {
-  num_chamado: string;
-  categoria: string;
-  setor: string;
-  status_ocorrencia: string;
-  data_hora_ocorrencia: string;
-}
+import { MeuChamado } from "@/types/interfaces";
 
 export default function PerfilUsuario() {
   const [setor, setSetor] = useState("");

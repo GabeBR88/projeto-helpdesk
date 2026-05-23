@@ -1,12 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import pool from "../../../lib/db";
-
-interface ValidarUsuario {
-  id_user: number;
-  username: string;
-  senha_hash: string;
-  perfil: string;
-}
+import { ValidarUsuario } from "@/types/interfaces";
 
 // Função responsável para gerenciar a comunicação entre o front-end  e o back-end que "fala" com o banco de dados
 export default async function handler(

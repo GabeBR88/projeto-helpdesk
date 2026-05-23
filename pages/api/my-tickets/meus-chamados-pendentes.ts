@@ -1,14 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import pool from "@/lib/db";
-import { RowDataPacket } from "mysql2";
-
-interface Ticket extends RowDataPacket {
-  num_chamado: string;
-  categoria: string;
-  setor: string;
-  status_ocorrencia: string;
-  data_hora_ocorrencia: string;
-}
+import { Ticket } from "@/types/interfaces";
 
 export default async function handler(
   req: NextApiRequest,
