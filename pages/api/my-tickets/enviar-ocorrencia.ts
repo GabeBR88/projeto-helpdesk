@@ -23,6 +23,30 @@ export default async function handler(
   }
 
   try {
+    // Busca o id_categoria pelo código
+    const [cat] = await pool.query<RowDataPacket[]>(
+      "SELECT id_categoria FROM tbl_categorias_ocorrencia WHERE codigo = ?",
+      [categoria],
+    );
+
+    if (!cat[0]) {
+      return res.status(400).json({ erro: "Categoria inválida" });
+    }
+
+    const id_categoria = cat[0].id_categoria;
+
+    // Busca o id_setor pelo código
+    const [set] = await pool.query<RowDataPacket[]>(
+      "SELECT id_setor FROM tbl_setores_empresa WHERE codigo = ?",
+      [setor],
+    );
+
+    if (!set[0]) {
+      return res.status(400).json({ erro: "Setor inválido" });
+    }
+
+    const id_setor = set[0].id_setor;
+
     // Gera o número do chamado
     const [ultimo] = await pool.query<RowDataPacket[]>(
       "SELECT MAX(CAST(SUBSTRING(num_chamado, 2) AS UNSIGNED)) as ultimo FROM tbl_ocorrencia",
@@ -37,9 +61,9 @@ export default async function handler(
     // Salva no banco
     await pool.query(
       `INSERT INTO tbl_ocorrencia 
-       (num_chamado, id_user, setor, categoria, descricao, data_hora_ocorrencia, prazo_final, status_ocorrencia) 
-       VALUES (?, ?, ?, ?, ?, NOW(), ?, 'Pendente')`,
-      [num_chamado, id, setor, categoria, descricao || null, prazo],
+   (num_chamado, id_user, id_setor, id_categoria, descricao, data_hora_ocorrencia, prazo_final, status_ocorrencia) 
+   VALUES (?, ?, ?, ?, ?, NOW(), ?, 'Pendente')`,
+      [num_chamado, id, id_setor, id_categoria, descricao || null, prazo],
     );
 
     res.status(201).json({

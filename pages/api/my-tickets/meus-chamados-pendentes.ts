@@ -19,10 +19,17 @@ export default async function handler(
 
   try {
     const [rows] = await pool.query<Ticket[]>(
-      `SELECT num_chamado, categoria, setor, status_ocorrencia, data_hora_ocorrencia 
-       FROM tbl_ocorrencia 
-       WHERE id_user = ? 
-       ORDER BY data_hora_ocorrencia DESC`,
+      `SELECT 
+  o.num_chamado,
+  c.descricao AS categoria,
+  s.descricao AS setor,
+  o.status_ocorrencia,
+  o.data_hora_ocorrencia
+  FROM tbl_ocorrencia o
+  JOIN tbl_categorias_ocorrencia c ON o.id_categoria = c.id_categoria
+  JOIN tbl_setores_empresa s ON o.id_setor = s.id_setor
+  WHERE o.id_user = ?
+  ORDER BY o.data_hora_ocorrencia DESC`,
       [id],
     );
 

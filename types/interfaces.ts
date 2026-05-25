@@ -49,3 +49,18 @@ export interface BotaoPrincipalProps {
   tipo?: "submit" | "button" | "reset";
   onClick?: () => void;
 }
+
+// Intefaces das categorias que constam na pasta API > Categorias > categorias.ts
+export interface CategoriasUser extends RowDataPacket {
+  id_categoria: number;
+  codigo: string;
+  descricao: string;
+  grupo: string;
+}
+
+// Intefaces das categorias que constam na pasta API > Setores > setores.ts
+export interface Setor extends RowDataPacket {
+  id_setor: number;
+  codigo: string;
+  descricao: string;
+}

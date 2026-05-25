@@ -1,14 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import pool from "@/lib/db";
-import { RowDataPacket } from "mysql2";
-
-interface PerfilUsuario extends RowDataPacket {
-  nome_user: string;
-  sobrenome_user: string;
-  email_user: string;
-  telefone: string;
-  perfil: string;
-}
+import { PerfilUsuario } from "@/types/interfaces";
 
 export default async function handler(
   req: NextApiRequest,

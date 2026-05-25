@@ -5,7 +5,7 @@ import TituloSite from "../components/title";
 import TopBar from "../components/topbar";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
-import { MeuChamado } from "@/types/interfaces";
+import { CategoriasUser, MeuChamado, Setor } from "@/types/interfaces";
 
 export default function PerfilUsuario() {
   const [setor, setSetor] = useState("");
@@ -22,39 +22,69 @@ export default function PerfilUsuario() {
     telefone: "",
     perfil: "",
   });
+  const [categorias, setCategorias] = useState<CategoriasUser[]>([]);
+
+  const [setores, setSetores] = useState<Setor[]>([]);
 
   useEffect(() => {
-    async function carregarDados() {
-      try {
-        const [perfilRes, chamadosRes] = await Promise.all([
-          fetch("/api/my-tickets/profile"),
-          fetch("/api/my-tickets/meus-chamados-pendentes"),
-        ]);
+    fetch("/api/setores/setores")
+      .then((res) => res.json())
+      .then((data) => setSetores(data));
+  }, []);
 
-        if (!perfilRes.ok || !chamadosRes.ok) {
-          throw new Error("Erro ao carregar dados");
-        }
+  //
 
-        const perfil = await perfilRes.json();
-        const chamados = await chamadosRes.json();
+  useEffect(() => {
+    fetch("/api/categorias/categorias")
+      .then((res) => res.json())
+      .then((data) => setCategorias(data))
+      .catch((error) => console.error("Erro ao buscar dados:", error));
+  }, []);
+  const categoriasPorGrupo = categorias.reduce(
+    (acc, cat) => {
+      if (!acc[cat.grupo]) acc[cat.grupo] = [];
+      acc[cat.grupo].push(cat);
+      return acc;
+    },
+    {} as Record<string, typeof categorias>,
+  );
 
-        setDadosUsuario({
-          nome_user: perfil.nome_user || "",
-          sobrenome_user: perfil.sobrenome_user || "",
-          email_user: perfil.email_user || "",
-          telefone: perfil.telefone || "",
-          perfil: perfil.perfil || "",
-        });
+  const carregarDados = async () => {
+    try {
+      const [perfilRes, chamadosRes] = await Promise.all([
+        fetch("/api/my-tickets/profile"),
+        fetch("/api/my-tickets/meus-chamados-pendentes"),
+      ]);
 
-        setMeusChamados(chamados);
-      } catch (error) {
-        console.error("Erro ao carregar dados:", error);
-      } finally {
-        setLoading(false);
+      if (!perfilRes.ok || !chamadosRes.ok) {
+        throw new Error("Erro ao carregar dados");
       }
-    }
 
-    carregarDados();
+      const perfil = await perfilRes.json();
+      const chamados = await chamadosRes.json();
+
+      setDadosUsuario({
+        nome_user: perfil.nome_user || "",
+        sobrenome_user: perfil.sobrenome_user || "",
+        email_user: perfil.email_user || "",
+        telefone: perfil.telefone || "",
+        perfil: perfil.perfil || "",
+      });
+
+      setMeusChamados(chamados);
+    } catch (error) {
+      console.error("Erro ao carregar dados:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    const carregar = async () => {
+      await carregarDados();
+    };
+
+    carregar();
   }, []);
 
   const fecharFormularioLocal = () => {
@@ -80,9 +110,14 @@ export default function PerfilUsuario() {
       return;
     }
 
+    await carregarDados();
     fecharFormularioLocal();
 
     setMensagem(`${dados.num_chamado} criado com sucesso!`);
+
+    setTimeout(() => {
+      setMensagem("");
+    }, 3000);
 
     setSetor("");
     setCategoria("");
@@ -96,6 +131,14 @@ export default function PerfilUsuario() {
 
     await router.push("/");
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <p>Carregando...</p>
+      </div>
+    );
+  }
 
   return (
     <>
@@ -236,7 +279,6 @@ export default function PerfilUsuario() {
                           </label>
 
                           <select
-                            id="inSetorUsuario"
                             value={setor}
                             onChange={(e) => setSetor(e.target.value)}
                             className="w-full px-3 sm:px-4 py-2.5 sm:py-3 bg-(--color-monochromatic-4)/20 border-2 border-(--color-monochromatic-4) focus:border-(--color-monochromatic-1) focus:bg-white outline-none transition-all duration-200 text-(--color-monochromatic-1) cursor-pointer text-xs sm:text-sm"
@@ -245,26 +287,11 @@ export default function PerfilUsuario() {
                             <option value="" disabled>
                               Selecione...
                             </option>
-
-                            <option value="setorAdm">Administrativo</option>
-                            <option value="callC">Call Center</option>
-                            <option value="processosOp">
-                              Processos Operacionais
-                            </option>
-                            <option value="tesouraria">Tesouraria</option>
-                            <option value="diretoria">Diretoria</option>
-                            <option value="recepcao">Recepção</option>
-                            <option value="rh">Recursos Humanos</option>
-                            <option value="segurancaTrab">
-                              Segurança do Trabalho
-                            </option>
-                            <option value="beneficios">Benefícios</option>
-                            <option value="emissao">Emissão</option>
-                            <option value="atuarial">Atuarial</option>
-                            <option value="produtos">Produtos</option>
-                            <option value="marketing">Marketing</option>
-                            <option value="laboral">Laboral</option>
-                            <option value="gerencia">Gerencia</option>
+                            {setores.map((s) => (
+                              <option key={s.id_setor} value={s.codigo}>
+                                {s.descricao}
+                              </option>
+                            ))}
                           </select>
                         </div>
 
@@ -279,7 +306,6 @@ export default function PerfilUsuario() {
                           </label>
 
                           <select
-                            id="inCategoria"
                             value={categoria}
                             onChange={(e) => setCategoria(e.target.value)}
                             className="w-full px-3 sm:px-4 py-2.5 sm:py-3 bg-(--color-monochromatic-4)/20 border-2 border-(--color-monochromatic-4) focus:border-(--color-monochromatic-1) focus:bg-white outline-none transition-all duration-200 text-(--color-monochromatic-1) cursor-pointer text-xs sm:text-sm"
@@ -289,42 +315,20 @@ export default function PerfilUsuario() {
                               Selecione...
                             </option>
 
-                            <optgroup label="Internet e Rede">
-                              <option value="internet">Internet</option>
-                              <option value="rede">Rede Interna</option>
-                              <option value="wifi">Wi-Fi</option>
-                            </optgroup>
-
-                            <optgroup label="Impressão">
-                              <option value="impressora">Impressora</option>
-                              <option value="tonner">
-                                Impressora &gt; Tonner
-                              </option>
-                            </optgroup>
-
-                            <optgroup label="Sistema">
-                              <option value="regulacao">
-                                Sistema &gt; Regulação
-                              </option>
-                              <option value="lentidao">
-                                Sistema &gt; Lentidão
-                              </option>
-                              <option value="atualizacao">
-                                Sistema &gt; Atualização
-                              </option>
-                              <option value="sisOutros">
-                                Sistema &gt; Outros
-                              </option>
-                            </optgroup>
-
-                            <optgroup label="Periféricos">
-                              <option value="troca">
-                                Periférico &gt; Troca
-                              </option>
-                              <option value="defeito">
-                                Periférico &gt; Defeito
-                              </option>
-                            </optgroup>
+                            {Object.entries(categoriasPorGrupo).map(
+                              ([grupo, items]) => (
+                                <optgroup key={grupo} label={grupo}>
+                                  {items.map((cat) => (
+                                    <option
+                                      key={cat.id_categoria}
+                                      value={cat.codigo}
+                                    >
+                                      {cat.descricao}
+                                    </option>
+                                  ))}
+                                </optgroup>
+                              ),
+                            )}
                           </select>
                         </div>
                       </div>
