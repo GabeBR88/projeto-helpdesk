@@ -34,3 +34,18 @@ export interface Ticket extends RowDataPacket {
   status_ocorrencia: string;
   data_hora_ocorrencia: string;
 }
+
+// Interface da estilização do botão props
+export interface BotaoEstilizadoProps {
+  icon: string; // Nome do ícone Bootstrap (ex: "bi bi-headset")
+  texto: string; // Texto de dentro do botão (ex: "Abrir chamado")
+  id: string;
+  onClick?: () => void;
+}
+
+export interface BotaoPrincipalProps {
+  icon: string;
+  texto: string;
+  tipo?: "submit" | "button" | "reset";
+  onClick?: () => void;
+}

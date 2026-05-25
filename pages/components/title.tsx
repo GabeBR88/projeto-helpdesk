@@ -7,7 +7,7 @@ interface TituloSiteProps {
 export default function TituloSite({ titulo }: TituloSiteProps) {
   return (
     <Head>
-      <title>{`HelpDesk || ${titulo}`}</title>
+      <title>{`HelpDesk | ${titulo}`}</title>
     </Head>
   );
 }
