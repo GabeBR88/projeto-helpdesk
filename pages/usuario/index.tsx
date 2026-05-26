@@ -23,7 +23,6 @@ export default function PerfilUsuario() {
     perfil: "",
   });
   const [categorias, setCategorias] = useState<CategoriasUser[]>([]);
-
   const [setores, setSetores] = useState<Setor[]>([]);
 
   useEffect(() => {

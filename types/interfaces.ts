@@ -64,3 +64,32 @@ export interface Setor extends RowDataPacket {
   codigo: string;
   descricao: string;
 }
+
+// Interface dos funcionários com perfil ServiceDesk que constam no banco de dados (API > sd-setor > st-setor.ts)
+export interface SdSetor extends RowDataPacket {
+  id_user: number;
+  nome_user: string;
+  sobrenome_user: string;
+  perfi: string;
+  username: string;
+}
+
+// Interface dos chamados com status pendente (API > status-chamado > status.ts)
+export interface ChamadosPendentes extends RowDataPacket {
+  total: number;
+}
+
+// Interface dos chamados com status pendente (API > status-chamado > fora-prazo.ts)
+export interface ForaPrazo extends RowDataPacket {
+  total: number;
+}
+
+// Interface dos chamados com status pendente (API > status-chamado > chamados-hoje.ts)
+export interface ChamadosDoDia extends RowDataPacket {
+  total: number;
+}
+
+// Interface dos chamados com status pendente (API > status-chamado > chamados-finalizados.ts)
+export interface ChamadosFinalizados extends RowDataPacket {
+  total: number;
+}

@@ -16,7 +16,7 @@ export default async function handler(
     );
     res.status(200).json(rows);
   } catch (error) {
-    console.error("Erro ao buscar setores:", error);
+    console.error("Erro ao buscar setores: ", error);
     res.status(500).json({ erro: "Erro ao buscar setores" });
   }
 }
