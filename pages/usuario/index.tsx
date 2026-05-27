@@ -133,8 +133,13 @@ export default function PerfilUsuario() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <p>Carregando...</p>
+      <div className="min-h-screen flex items-center justify-center bg-(--color-monochromatic-4)">
+        <div className="text-center">
+          <div className="w-10 h-10 border-4 border-(--color-monochromatic-3) border-t-(--color-monochromatic-1) rounded-full animate-spin mx-auto mb-3"></div>
+          <p className="text-(--color-monochromatic-2) text-sm">
+            Carregando...
+          </p>
+        </div>
       </div>
     );
   }

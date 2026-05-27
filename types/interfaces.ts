@@ -9,6 +9,18 @@ export interface MeuChamado {
   data_hora_ocorrencia: string;
 }
 
+// Interface para o arquivo index.ts na pasta ServiceDesk
+export interface ChamadoSD extends RowDataPacket {
+  num_chamado: string;
+  categoria: string;
+  setor: string;
+  status_ocorrencia: string;
+  data_hora_ocorrencia: string;
+  nome_user: string;
+  sobrenome_user: string;
+  descricao: string;
+}
+
 // Interface para o arquivo login.ts dentro da pasta API>Auth
 export interface ValidarUsuario extends RowDataPacket {
   id_user: number;
