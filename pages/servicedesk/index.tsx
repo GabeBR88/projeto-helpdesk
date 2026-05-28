@@ -17,7 +17,7 @@ function getStatusCor(status: string): string {
   switch (status) {
     case "Pendente":
       return "bg-yellow-100 text-yellow-800 text-[10px] sm:text-xs font-bold px-2 sm:px-3 py-0.5 sm:py-1 rounded-full whitespace-nowrap";
-    case "Em andamento":
+    case "Em tratamento":
       return "bg-amber-100 text-amber-800 text-[10px] sm:text-xs font-bold px-2 sm:px-3 py-0.5 sm:py-1 rounded-full whitespace-nowrap";
     case "Finalizado":
       return "bg-green-100 text-green-800 text-[10px] sm:text-xs font-bold px-2 sm:px-3 py-0.5 sm:py-1 rounded-full whitespace-nowrap";
@@ -53,7 +53,8 @@ export default function PerfilServiceDesk() {
   );
   const [mostrarFinalizados, setMostrarFinalizados] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [termoBusca, setTermoBusca] = useState("");
+  const [search, setSearch] = useState("");
+  const [ativarBotaoPesquisar, setAtivarBotaoPesquisar] = useState("");
 
   useEffect(() => {
     fetch("/api/sd-setor/sd-setor")
@@ -150,34 +151,6 @@ export default function PerfilServiceDesk() {
     };
   }, []);
 
-  // Função que verifica se a linha corresponde à busca
-  const linhaCorresponde = (chamado: ChamadoSD) => {
-    if (!termoBusca.trim()) return false;
-    const termo = termoBusca.toLowerCase();
-    const nomeCompleto =
-      `${chamado.nome_user} ${chamado.sobrenome_user}`.toLowerCase();
-    return (
-      chamado.num_chamado.toLowerCase().includes(termo) ||
-      nomeCompleto.includes(termo) ||
-      (chamado.concluido_por || "").toLowerCase().includes(termo) ||
-      chamado.setor.toLowerCase().includes(termo) ||
-      chamado.categoria.toLowerCase().includes(termo)
-    );
-  };
-
-  // Função que retorna a classe do <tr> conforme a busca
-  const getLinhaClasse = (chamado: ChamadoSD, ehFinalizado: boolean) => {
-    const base =
-      "transition-all duration-300 cursor-pointer border-b border-(--color-monochromatic-4)";
-    if (!termoBusca.trim()) {
-      return `${base} ${ehFinalizado ? "hover:bg-(--color-monochromatic-4)/10" : "hover:bg-(--color-monochromatic-4)/20"}`;
-    }
-    if (linhaCorresponde(chamado)) {
-      return `${base} bg-amber-100/80 ring-2 ring-amber-400 shadow-md scale-[1.01] z-10 relative`;
-    }
-    return `${base} opacity-40`;
-  };
-
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-(--color-monochromatic-4)">
@@ -190,6 +163,34 @@ export default function PerfilServiceDesk() {
       </div>
     );
   }
+
+  // Filtro de busca
+  const searchLowerCase = ativarBotaoPesquisar.toLowerCase();
+
+  // Chamados pendentes
+  const pesquisaChamadosPendentes = todosChamados.filter((chamado) => {
+    const nomeCompleto =
+      `${chamado.nome_user} ${chamado.sobrenome_user}`.toLowerCase();
+    return (
+      chamado.num_chamado.toLowerCase().includes(searchLowerCase) ||
+      nomeCompleto.includes(searchLowerCase) ||
+      chamado.setor.toLowerCase().includes(searchLowerCase) ||
+      chamado.categoria.toLowerCase().includes(searchLowerCase)
+    );
+  });
+
+  // Chamados Finalizados
+  const pesquisaChamadosFinalizados = chamadosFinalizados.filter((chamado) => {
+    const nomeCompleto =
+      `${chamado.nome_user} ${chamado.sobrenome_user}`.toLowerCase();
+    return (
+      chamado.num_chamado.toLowerCase().includes(searchLowerCase) ||
+      nomeCompleto.includes(searchLowerCase) ||
+      chamado.setor.toLowerCase().includes(searchLowerCase) ||
+      chamado.categoria.toLowerCase().includes(searchLowerCase) ||
+      (chamado.concluido_por || "").toLowerCase().includes(searchLowerCase)
+    );
+  });
 
   return (
     <>
@@ -208,7 +209,6 @@ export default function PerfilServiceDesk() {
         </div>
 
         <div className="flex-1">
-          {/* Cabeçalho + Busca */}
           <div className="interface pt-6 sm:pt-8 pb-4 sm:pb-6">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4 sm:mb-6">
               <h1 className="text-lg sm:text-2xl text-(--color-monochromatic-1) font-bold uppercase tracking-wider">
@@ -218,19 +218,29 @@ export default function PerfilServiceDesk() {
                 <div className="flex items-center gap-0">
                   <input
                     className="w-full px-3 sm:px-4 py-2 sm:py-2.5 bg-(--color-monochromatic-5) border-2 border-r-0 border-(--color-monochromatic-4) focus:border-(--color-monochromatic-1) focus:bg-white outline-none transition-all duration-200 text-(--color-monochromatic-1) placeholder-(--color-monochromatic-3) text-xs rounded-l-full"
-                    type="text"
-                    value={termoBusca}
-                    onChange={(e) => setTermoBusca(e.target.value)}
-                    placeholder="Buscar por nº, nome ou técnico..."
+                    type="search"
+                    value={search}
+                    onChange={(e) => {
+                      setSearch(e.target.value);
+                      if (e.target.value === "") {
+                        setAtivarBotaoPesquisar(""); // Limpa a pesquisa se apagar o que foi escrito
+                      }
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") setAtivarBotaoPesquisar(search);
+                    }}
+                    placeholder="Buscar por nº chamado, nome ou técnico..."
                   />
-                  <button className="bg-(--color-monochromatic-1) hover:bg-(--color-monochromatic-2) text-(--color-monochromatic-5) px-4 py-2 sm:py-2.5 rounded-r-full transition-colors duration-200">
+                  <button
+                    onClick={() => setAtivarBotaoPesquisar(search)}
+                    className="bg-(--color-monochromatic-1) hover:bg-(--color-monochromatic-2) text-(--color-monochromatic-5) px-4 py-2 sm:py-2.5 rounded-r-full transition-colors duration-200"
+                  >
                     <i className="bi bi-search text-sm sm:text-base"></i>
                   </button>
                 </div>
               </div>
             </div>
 
-            {/* Cards */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-6">
               <CardIndicativo
                 quantidade={quantidadePendente}
@@ -256,7 +266,7 @@ export default function PerfilServiceDesk() {
             </div>
           </div>
 
-          {/* Tabela Pendentes */}
+          {/* TABELA PENDENTES */}
           <div className="interface py-4 sm:py-6 px-2 sm:px-0">
             <h2 className="text-base sm:text-lg font-bold text-(--color-monochromatic-1) uppercase tracking-wider mb-3 sm:mb-4">
               <i className="bi bi-list-check mr-2"></i> Chamados Atribuídos
@@ -289,7 +299,7 @@ export default function PerfilServiceDesk() {
               <div className="max-h-64 overflow-y-auto">
                 <table className="w-full min-w-150">
                   <tbody>
-                    {todosChamados.length === 0 ? (
+                    {pesquisaChamadosPendentes.length === 0 ? (
                       <tr>
                         <td
                           colSpan={6}
@@ -299,10 +309,10 @@ export default function PerfilServiceDesk() {
                         </td>
                       </tr>
                     ) : (
-                      todosChamados.map((chamado) => (
+                      pesquisaChamadosPendentes.map((chamado) => (
                         <tr
                           key={chamado.num_chamado}
-                          className={getLinhaClasse(chamado, false)}
+                          className="hover:bg-(--color-monochromatic-4)/20 transition-colors cursor-pointer border-b border-(--color-monochromatic-4)"
                           onClick={() =>
                             AbrirModal({
                               numero: chamado.num_chamado,
@@ -360,7 +370,7 @@ export default function PerfilServiceDesk() {
             </div>
           </div>
 
-          {/* Finalizados */}
+          {/* FINALIZADOS */}
           <div className="interface pb-2 px-2 sm:px-0 mt-6">
             <button
               onClick={() => setMostrarFinalizados(!mostrarFinalizados)}
@@ -375,7 +385,7 @@ export default function PerfilServiceDesk() {
 
           {mostrarFinalizados && (
             <div className="interface pb-6 px-2 sm:px-0">
-              {chamadosFinalizados.length === 0 ? (
+              {pesquisaChamadosFinalizados.length === 0 ? (
                 <p className="text-(--color-monochromatic-3) text-xs text-center py-4">
                   Nenhum chamado finalizado
                 </p>
@@ -409,10 +419,10 @@ export default function PerfilServiceDesk() {
                         </tr>
                       </thead>
                       <tbody>
-                        {chamadosFinalizados.map((chamado) => (
+                        {pesquisaChamadosFinalizados.map((chamado) => (
                           <tr
                             key={chamado.num_chamado}
-                            className={getLinhaClasse(chamado, true)}
+                            className="hover:bg-(--color-monochromatic-4)/10 transition-colors cursor-pointer border-b border-(--color-monochromatic-4)"
                             onClick={() =>
                               AbrirModal({
                                 numero: chamado.num_chamado,
