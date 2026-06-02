@@ -179,15 +179,17 @@ export default function PerfilUsuario() {
           )}
 
           {mensagem && (
-            <p
-              className={`text-sm font-bold text-center px-4 py-2 rounded-lg ${
-                mensagem.includes("sucesso")
-                  ? "bg-green-100 text-green-800"
-                  : "bg-red-100 text-red-800"
-              }`}
-            >
-              {mensagem}
-            </p>
+            <div className="interface py-4">
+              <p
+                className={`text-sm font-bold text-center px-4 py-2 rounded-lg max-w-md mx-auto ${
+                  mensagem.includes("sucesso")
+                    ? "bg-green-100 text-green-800"
+                    : "bg-red-100 text-red-800"
+                }`}
+              >
+                {mensagem}
+              </p>
+            </div>
           )}
 
           {mostrarFormulario && (

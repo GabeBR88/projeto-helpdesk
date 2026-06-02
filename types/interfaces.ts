@@ -105,3 +105,42 @@ export interface ChamadosDoDia extends RowDataPacket {
 export interface ChamadosFinalizados extends RowDataPacket {
   total: number;
 }
+
+// Interface para o arquivo dentro da pasta API > desk-tickets > detalhes-chamado.ts
+export interface DetalhesChamado extends RowDataPacket {
+  num_chamado: string;
+  categoria: string;
+  nome_user: string;
+  sobrenome_user: string;
+  email_user: string;
+  telefone: string;
+  username: string;
+  setor: string;
+  descricao: string;
+  anexo: string;
+  status_ocorrencia: string;
+  prioridade: string;
+  data_hora_ocorrencia: string;
+}
+
+// Interfaces para as manifestações API > Registro-sd > Manifestacao ...
+// manifestacao.ts
+export interface Manifestacao extends RowDataPacket {
+  id_manifestacao: number;
+  codigo: string;
+  descricao: string;
+}
+
+// grupo-manifestacao.ts
+export interface GrupoManifestacao extends RowDataPacket {
+  id_grupo: number;
+  codigo: string;
+  descricao: string;
+}
+
+// tipo-manifestacao.ts
+export interface TipoManifestacao extends RowDataPacket {
+  id_manifestacao: number;
+  codigo: string;
+  descricao: string;
+}

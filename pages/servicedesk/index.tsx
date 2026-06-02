@@ -37,6 +37,13 @@ export default function PerfilServiceDesk() {
 
   const router = useRouter();
 
+  const iniciarAtendimento = () => {
+    if (chamadoSelecionado) {
+      const numeroLimpo = chamadoSelecionado.replace("#", "");
+      router.push(`/servicedesk/atendimento-sd?chamado=${numeroLimpo}`);
+    }
+  };
+
   const handleLogout = () => {
     document.cookie = "usuario=; path=/; max-age=0";
     router.push("/");
@@ -55,6 +62,7 @@ export default function PerfilServiceDesk() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [ativarBotaoPesquisar, setAtivarBotaoPesquisar] = useState("");
+  const [chamadoSelecionado, setChamadoSelecionado] = useState<string>("");
 
   useEffect(() => {
     fetch("/api/sd-setor/sd-setor")
@@ -164,10 +172,8 @@ export default function PerfilServiceDesk() {
     );
   }
 
-  // Filtro de busca
   const searchLowerCase = ativarBotaoPesquisar.toLowerCase();
 
-  // Chamados pendentes
   const pesquisaChamadosPendentes = todosChamados.filter((chamado) => {
     const nomeCompleto =
       `${chamado.nome_user} ${chamado.sobrenome_user}`.toLowerCase();
@@ -179,7 +185,6 @@ export default function PerfilServiceDesk() {
     );
   });
 
-  // Chamados Finalizados
   const pesquisaChamadosFinalizados = chamadosFinalizados.filter((chamado) => {
     const nomeCompleto =
       `${chamado.nome_user} ${chamado.sobrenome_user}`.toLowerCase();
@@ -223,7 +228,7 @@ export default function PerfilServiceDesk() {
                     onChange={(e) => {
                       setSearch(e.target.value);
                       if (e.target.value === "") {
-                        setAtivarBotaoPesquisar(""); // Limpa a pesquisa se apagar o que foi escrito
+                        setAtivarBotaoPesquisar("");
                       }
                     }}
                     onKeyDown={(e) => {
@@ -313,7 +318,8 @@ export default function PerfilServiceDesk() {
                         <tr
                           key={chamado.num_chamado}
                           className="hover:bg-(--color-monochromatic-4)/20 transition-colors cursor-pointer border-b border-(--color-monochromatic-4)"
-                          onClick={() =>
+                          onClick={() => {
+                            setChamadoSelecionado(chamado.num_chamado);
                             AbrirModal({
                               numero: chamado.num_chamado,
                               descricao: chamado.categoria,
@@ -325,8 +331,8 @@ export default function PerfilServiceDesk() {
                               ),
                               comentario:
                                 chamado.descricao || "Nenhum comentário",
-                            })
-                          }
+                            });
+                          }}
                         >
                           <td className="px-2 sm:px-4 py-2 sm:py-3 text-(--color-monochromatic-1) font-bold text-xs sm:text-sm whitespace-nowrap">
                             {chamado.num_chamado}
@@ -597,6 +603,7 @@ export default function PerfilServiceDesk() {
                   icon="bi-check-circle-fill"
                   texto="Iniciar Atendimento"
                   id="btIniciarAtendimento"
+                  onClick={iniciarAtendimento}
                 />
                 <BotaoEstilizado
                   icon="bi-arrow-down-up"
