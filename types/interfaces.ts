@@ -140,7 +140,15 @@ export interface GrupoManifestacao extends RowDataPacket {
 
 // tipo-manifestacao.ts
 export interface TipoManifestacao extends RowDataPacket {
-  id_manifestacao: number;
+  id_tipo: number;
+  id_grupo: number;
+  codigo: string;
+  descricao: string;
+}
+
+// status-sd.ts
+export interface StatusSD extends RowDataPacket {
+  id_status: number;
   codigo: string;
   descricao: string;
 }

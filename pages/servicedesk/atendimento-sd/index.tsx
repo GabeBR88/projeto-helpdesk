@@ -7,6 +7,8 @@ import {
   DetalhesChamado,
   Manifestacao,
   GrupoManifestacao,
+  TipoManifestacao,
+  StatusSD,
 } from "@/types/interfaces";
 
 export default function PainelAtendimentoSD() {
@@ -98,17 +100,67 @@ export default function PainelAtendimentoSD() {
         if (Array.isArray(data)) {
           setGrupoManifestacao(data);
         } else {
-          console.error("API não retornou um array:", data);
+          console.error("API não retornou um array: ", data);
           setGrupoManifestacao([]);
         }
       })
       .catch((err) => {
-        console.error("Erro grupo manifestação:", err);
+        console.error("Erro grupo manifestação: ", err);
         setGrupoManifestacao([]);
       });
   }, []);
 
   // Tipo de Manifestação
+  const [tipoManifestacao, setTipoManifestacao] = useState<TipoManifestacao[]>(
+    [],
+  );
+  const [tipoSelecionado, setTipoSelecionado] = useState("");
+
+  useEffect(() => {
+    if (grupoSelecionado) {
+      fetch(
+        `/api/registro-sd/tipo-manifestacao/tipo-manifestacao?grupo=${grupoSelecionado}`,
+      )
+        .then((res) => res.json())
+        .then((data) => {
+          if (Array.isArray(data)) {
+            setTipoManifestacao(data);
+          } else {
+            setTipoManifestacao([]);
+          }
+          setTipoSelecionado("");
+        })
+        .catch(() => {
+          setTipoManifestacao([]);
+          setTipoSelecionado("");
+        });
+    } else {
+      // eslint-disable-next-line
+      setTipoManifestacao([]);
+      setTipoSelecionado("");
+    }
+  }, [grupoSelecionado]);
+
+  // Status SD
+  const [status, setStatus] = useState<StatusSD[]>([]);
+  const [statusSelecionado, setStatusSelecionado] = useState("");
+
+  useEffect(() => {
+    fetch("/api/registro-sd/status-sd/status-sd")
+      .then((res) => res.json())
+      .then((data) => {
+        if (Array.isArray(data)) {
+          setStatus(data);
+        } else {
+          console.error("API não retornou um array: ", data);
+          setStatus([]);
+        }
+      })
+      .catch((err) => {
+        console.error("Erro status: ", err);
+        setStatus([]);
+      });
+  }, []);
 
   if (loading) {
     return (
@@ -135,7 +187,7 @@ export default function PainelAtendimentoSD() {
             <h1 className="text-lg sm:text-2xl text-(--color-monochromatic-1) font-bold uppercase tracking-wider mb-2">
               <i className="bi bi-headset mr-2"></i> Painel de Atendimento
             </h1>
-            <p className="text-xs text-(--color-monochromatic-3) mb-4">
+            <p className="text-xs text-(--color-monochromatic-2) font-bold mb-4">
               Nº do chamado: #{numeroChamado}
             </p>
           </div>
@@ -355,7 +407,6 @@ export default function PainelAtendimentoSD() {
                       <select
                         value={grupoSelecionado}
                         onChange={(e) => setGrupoSelecionado(e.target.value)}
-                        id="grupoManifestacao"
                         className="w-full px-3 sm:px-4 py-2.5 sm:py-3 bg-(--color-monochromatic-4)/20 border-2 border-(--color-monochromatic-4) focus:border-(--color-monochromatic-1) focus:bg-white outline-none transition-all duration-200 text-(--color-monochromatic-1) cursor-pointer text-xs sm:text-sm"
                       >
                         <option value="" disabled>
@@ -379,13 +430,18 @@ export default function PainelAtendimentoSD() {
                         Manifestação
                       </label>
                       <select
-                        defaultValue=""
-                        id="tipoManifestacao"
+                        value={tipoSelecionado}
+                        onChange={(e) => setTipoSelecionado(e.target.value)}
                         className="w-full px-3 sm:px-4 py-2.5 sm:py-3 bg-(--color-monochromatic-4)/20 border-2 border-(--color-monochromatic-4) focus:border-(--color-monochromatic-1) focus:bg-white outline-none transition-all duration-200 text-(--color-monochromatic-1) cursor-pointer text-xs sm:text-sm"
                       >
                         <option value="" disabled>
                           Escolha uma opção...
                         </option>
+                        {tipoManifestacao.map((t) => (
+                          <option key={t.id_tipo} value={t.codigo}>
+                            {t.descricao}
+                          </option>
+                        ))}
                       </select>
                     </div>
                   </div>
@@ -407,7 +463,7 @@ export default function PainelAtendimentoSD() {
                       placeholder="Descreva o que foi feito neste atendimento..."
                     ></textarea>
                   </div>
-
+                  {/* Status atendimento SD */}
                   <div className="flex flex-col sm:flex-row items-stretch sm:items-end justify-between gap-4">
                     <div className="w-full sm:w-48">
                       <label
@@ -417,22 +473,19 @@ export default function PainelAtendimentoSD() {
                         <i className="bi bi-flag mr-1"></i> Status
                       </label>
                       <select
-                        defaultValue=""
+                        value={statusSelecionado}
+                        onChange={(e) => setStatusSelecionado(e.target.value)}
                         id="statusAtendimento"
                         className="w-full px-3 sm:px-4 py-2.5 sm:py-3 bg-(--color-monochromatic-4)/20 border-2 border-(--color-monochromatic-4) focus:border-(--color-monochromatic-1) focus:bg-white outline-none transition-all duration-200 text-(--color-monochromatic-1) cursor-pointer text-xs sm:text-sm"
                       >
                         <option value="" disabled>
                           Escolha uma opção...
                         </option>
-                        <option value="em_atendimento">Em Tratamento</option>
-                        <option value="aguardando_fornecedor">
-                          Aguardando Fornecedor
-                        </option>
-                        <option value="aguardando_usuario">
-                          Aguardando Usuário
-                        </option>
-                        <option value="pausado">Pausado</option>
-                        <option value="concluido">Concluído</option>
+                        {status.map((s) => (
+                          <option key={s.id_status} value={s.codigo}>
+                            {s.descricao}
+                          </option>
+                        ))}
                       </select>
                     </div>
 

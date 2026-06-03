@@ -12,12 +12,12 @@ export default async function handler(
 
   try {
     const [rows] = await pool.query<GrupoManifestacao[]>(
-      "SELECT id_grupo, codigo descricao FROM tbl_grupo_manifestacao WHERE ativo = 1 ORDER BY descricao",
+      "SELECT id_grupo, codigo, descricao FROM tbl_grupo_manifestacao WHERE ativo = 1 ORDER BY descricao",
     );
 
     res.status(200).json(rows);
   } catch (error) {
-    console.error("Erro ao buscar manifestacao: ", error);
-    res.status(500).json({ erro: "Erro ao buscar manifestacao" });
+    console.error("Erro ao buscar grupo de manifestacao: ", error);
+    res.status(500).json({ erro: "Erro ao buscar grupo de manifestacao" });
   }
 }
