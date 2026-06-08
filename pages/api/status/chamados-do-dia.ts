@@ -12,7 +12,7 @@ export default async function handler(
 
   try {
     const [rows] = await pool.query<ChamadosDoDia[]>(
-      "SELECT COUNT(*) AS total FROM tbl_ocorrencia WHERE status_ocorrencia = 'Pendente' AND DATE(data_hora_ocorrencia) = CURDATE()",
+      "SELECT COUNT(*) AS total FROM tbl_ocorrencia WHERE DATE(data_hora_ocorrencia) = CURDATE()",
     );
     res.status(200).json(rows[0].total);
   } catch (error) {

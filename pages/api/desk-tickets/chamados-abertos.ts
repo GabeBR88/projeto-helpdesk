@@ -30,7 +30,7 @@ export default async function handler(
   JOIN tbl_categorias_ocorrencia c ON o.id_categoria = c.id_categoria
   JOIN tbl_setores_empresa s ON o.id_setor = s.id_setor
   JOIN tbl_funcionarios f ON o.id_user = f.id_user
-  WHERE o.status_ocorrencia IN ('Em andamento', 'Em tratamento),
+  WHERE o.status_ocorrencia = 'Pendente'
   ORDER BY o.data_hora_ocorrencia ASC`,
     );
 

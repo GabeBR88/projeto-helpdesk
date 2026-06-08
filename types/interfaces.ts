@@ -108,6 +108,7 @@ export interface ChamadosFinalizados extends RowDataPacket {
 
 // Interface para o arquivo dentro da pasta API > desk-tickets > detalhes-chamado.ts
 export interface DetalhesChamado extends RowDataPacket {
+  id_ocorrencia: number;
   num_chamado: string;
   categoria: string;
   nome_user: string;
@@ -121,6 +122,10 @@ export interface DetalhesChamado extends RowDataPacket {
   status_ocorrencia: string;
   prioridade: string;
   data_hora_ocorrencia: string;
+  data_hora_conclusao: string;
+  username_tecnico: string;
+  nome_tecnico: string;
+  sobrenome_tecnico: string;
 }
 
 // Interfaces para as manifestações API > Registro-sd > Manifestacao ...
@@ -151,4 +156,17 @@ export interface StatusSD extends RowDataPacket {
   id_status: number;
   codigo: string;
   descricao: string;
+}
+
+// Interface para visualizar os registros realizados (API > desk-tickets > meus-registros.ts)
+export interface MeusRegistros extends RowDataPacket {
+  id_atendimento: number;
+  num_chamado: string;
+  login_tecnico: string;
+  manifestacao: string;
+  grupo_manifestacao: string;
+  tipo_manifestacao: string;
+  comentario: string;
+  status: string;
+  data_hora_atendimento: string;
 }

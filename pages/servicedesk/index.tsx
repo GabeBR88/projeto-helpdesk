@@ -11,7 +11,12 @@ import {
   FecharModal,
 } from "./script";
 import { useRouter } from "next/router";
-import { ChamadoSD, SdSetor } from "@/types/interfaces";
+import {
+  ChamadoSD,
+  DetalhesChamado,
+  MeusRegistros,
+  SdSetor,
+} from "@/types/interfaces";
 
 function getStatusCor(status: string): string {
   switch (status) {
@@ -52,17 +57,27 @@ export default function PerfilServiceDesk() {
   const [serviceDesk, setServiceDesk] = useState<SdSetor[]>([]);
   const [quantidadePendente, setQuantidadePendente] = useState<number>(0);
   const [foraPrazo, setForaPrazo] = useState<number>(0);
+  const [minhasPendentes, setMinhasPendentes] = useState<number>(0);
   const [chamadosHoje, setChamadosHoje] = useState<number>(0);
   const [quantidadeFinalizado, setQuantidadeFinalizado] = useState<number>(0);
-  const [todosChamados, setTodosChamados] = useState<ChamadoSD[]>([]);
   const [chamadosFinalizados, setChamadosFinalizados] = useState<ChamadoSD[]>(
     [],
   );
+  const [chamadosAbertos, setChamadosAbertos] = useState<ChamadoSD[]>([]);
   const [mostrarFinalizados, setMostrarFinalizados] = useState(false);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [ativarBotaoPesquisar, setAtivarBotaoPesquisar] = useState("");
   const [chamadoSelecionado, setChamadoSelecionado] = useState<string>("");
+
+  // Modal de overview para finalizados
+  const [modalOverview, setModalOverview] = useState(false);
+  const [dadosOverview, setDadosOverview] = useState<DetalhesChamado | null>(
+    null,
+  );
+  const [historicoOverview, setHistoricoOverview] = useState<MeusRegistros[]>(
+    [],
+  );
 
   useEffect(() => {
     fetch("/api/sd-setor/sd-setor")
@@ -125,10 +140,17 @@ export default function PerfilServiceDesk() {
         })
         .catch(() => {});
 
-      fetch("/api/desk-tickets/chamados-atribuidos")
+      //fetch("/api/desk-tickets/chamados-atribuidos")
+      //  .then((res) => res.json())
+      //  .then((data) => {
+      //    if (montado && Array.isArray(data)) setTodosChamados(data);
+      //  })
+      //  .catch(() => {});
+
+      fetch("/api/desk-tickets/chamados-abertos")
         .then((res) => res.json())
         .then((data) => {
-          if (montado && Array.isArray(data)) setTodosChamados(data);
+          if (montado && Array.isArray(data)) setChamadosAbertos(data);
         })
         .catch(() => {});
 
@@ -136,6 +158,13 @@ export default function PerfilServiceDesk() {
         .then((res) => res.json())
         .then((data) => {
           if (montado && Array.isArray(data)) setChamadosFinalizados(data);
+        })
+        .catch(() => {});
+
+      fetch("/api/status/minhas-demandas-pendentes")
+        .then((res) => res.json())
+        .then((data) => {
+          if (montado && typeof data === "number") setMinhasPendentes(data);
         })
         .catch(() => {});
 
@@ -159,6 +188,26 @@ export default function PerfilServiceDesk() {
     };
   }, []);
 
+  const abrirOverview = async (chamado: ChamadoSD) => {
+    try {
+      const numLimpo = chamado.num_chamado.replace("#", "");
+
+      const [resDetalhes, resHistorico] = await Promise.all([
+        fetch(`/api/desk-tickets/detalhes-chamado?chamado=${numLimpo}`),
+        fetch(`/api/desk-tickets/meus-registros?chamado=${numLimpo}`),
+      ]);
+
+      const detalhes = await resDetalhes.json();
+      const historico = await resHistorico.json();
+
+      setDadosOverview(detalhes);
+      setHistoricoOverview(Array.isArray(historico) ? historico : []);
+      setModalOverview(true);
+    } catch (error) {
+      console.error("Erro ao carregar overview:", error);
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-(--color-monochromatic-4)">
@@ -174,7 +223,7 @@ export default function PerfilServiceDesk() {
 
   const searchLowerCase = ativarBotaoPesquisar.toLowerCase();
 
-  const pesquisaChamadosPendentes = todosChamados.filter((chamado) => {
+  const pesquisaChamadosPendentes = chamadosAbertos.filter((chamado) => {
     const nomeCompleto =
       `${chamado.nome_user} ${chamado.sobrenome_user}`.toLowerCase();
     return (
@@ -227,9 +276,7 @@ export default function PerfilServiceDesk() {
                     value={search}
                     onChange={(e) => {
                       setSearch(e.target.value);
-                      if (e.target.value === "") {
-                        setAtivarBotaoPesquisar("");
-                      }
+                      if (e.target.value === "") setAtivarBotaoPesquisar("");
                     }}
                     onKeyDown={(e) => {
                       if (e.key === "Enter") setAtivarBotaoPesquisar(search);
@@ -246,12 +293,26 @@ export default function PerfilServiceDesk() {
               </div>
             </div>
 
+            {/* Cards Indicativos */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-6">
               <CardIndicativo
                 quantidade={quantidadePendente}
-                textoIndicativo="Pendentes"
-                title="Chamados aguardando atendimento"
+                textoIndicativo="Total Pendentes"
+                title="Total de Chamados aguardando atendimento"
               />
+
+              <CardIndicativo
+                quantidade={minhasPendentes}
+                textoIndicativo="Minhas demandas pendentes"
+                title="Chamados que você está tratando"
+              />
+
+              <CardIndicativo
+                quantidade={quantidadePendente}
+                textoIndicativo="Chamados Redirecionados"
+                title="Chamados que foram redirecionados para você"
+              />
+
               <CardIndicativo
                 quantidade={foraPrazo}
                 corNumero="text-red-500"
@@ -266,7 +327,7 @@ export default function PerfilServiceDesk() {
               <CardIndicativo
                 quantidade={quantidadeFinalizado}
                 textoIndicativo="Finalizados"
-                title="Chamados finalizados hoje"
+                title="Chamados finalizados por você hoje"
               />
             </div>
           </div>
@@ -274,35 +335,33 @@ export default function PerfilServiceDesk() {
           {/* TABELA PENDENTES */}
           <div className="interface py-4 sm:py-6 px-2 sm:px-0">
             <h2 className="text-base sm:text-lg font-bold text-(--color-monochromatic-1) uppercase tracking-wider mb-3 sm:mb-4">
-              <i className="bi bi-list-check mr-2"></i> Chamados Atribuídos
+              <i className="bi bi-list-check mr-2"></i> Chamados Pendentes
             </h2>
             <div className="bg-(--color-monochromatic-5) rounded-2xl shadow-sm overflow-hidden">
-              <table className="w-full min-w-150">
-                <thead className="bg-(--color-monochromatic-1)">
-                  <tr>
-                    <th className="text-(--color-monochromatic-5) text-[10px] sm:text-xs font-bold uppercase tracking-wider px-2 sm:px-4 py-2 sm:py-3 text-left">
-                      Nº Chamado
-                    </th>
-                    <th className="text-(--color-monochromatic-5) text-[10px] sm:text-xs font-bold uppercase tracking-wider px-2 sm:px-4 py-2 sm:py-3 text-left">
-                      Categoria
-                    </th>
-                    <th className="text-(--color-monochromatic-5) text-[10px] sm:text-xs font-bold uppercase tracking-wider px-2 sm:px-4 py-2 sm:py-3 text-left hidden sm:table-cell">
-                      Solicitante
-                    </th>
-                    <th className="text-(--color-monochromatic-5) text-[10px] sm:text-xs font-bold uppercase tracking-wider px-2 sm:px-4 py-2 sm:py-3 text-left hidden md:table-cell">
-                      Setor
-                    </th>
-                    <th className="text-(--color-monochromatic-5) text-[10px] sm:text-xs font-bold uppercase tracking-wider px-2 sm:px-4 py-2 sm:py-3 text-center">
-                      Status
-                    </th>
-                    <th className="text-(--color-monochromatic-5) text-[10px] sm:text-xs font-bold uppercase tracking-wider px-2 sm:px-4 py-2 sm:py-3 text-center">
-                      Data de abertura
-                    </th>
-                  </tr>
-                </thead>
-              </table>
               <div className="max-h-64 overflow-y-auto">
-                <table className="w-full min-w-150">
+                <table className="w-full min-w-175">
+                  <thead className="bg-(--color-monochromatic-1) sticky top-0 z-10">
+                    <tr>
+                      <th className="text-(--color-monochromatic-5) text-[10px] sm:text-xs font-bold uppercase tracking-wider px-2 sm:px-4 py-2 sm:py-3 text-left w-22.5">
+                        Nº Chamado
+                      </th>
+                      <th className="text-(--color-monochromatic-5) text-[10px] sm:text-xs font-bold uppercase tracking-wider px-2 sm:px-4 py-2 sm:py-3 text-left">
+                        Categoria
+                      </th>
+                      <th className="text-(--color-monochromatic-5) text-[10px] sm:text-xs font-bold uppercase tracking-wider px-2 sm:px-4 py-2 sm:py-3 text-left hidden sm:table-cell">
+                        Solicitante
+                      </th>
+                      <th className="text-(--color-monochromatic-5) text-[10px] sm:text-xs font-bold uppercase tracking-wider px-2 sm:px-4 py-2 sm:py-3 text-left hidden md:table-cell">
+                        Setor
+                      </th>
+                      <th className="text-(--color-monochromatic-5) text-[10px] sm:text-xs font-bold uppercase tracking-wider px-2 sm:px-4 py-2 sm:py-3 text-center w-25">
+                        Status
+                      </th>
+                      <th className="text-(--color-monochromatic-5) text-[10px] sm:text-xs font-bold uppercase tracking-wider px-2 sm:px-4 py-2 sm:py-3 text-left">
+                        Data de abertura
+                      </th>
+                    </tr>
+                  </thead>
                   <tbody>
                     {pesquisaChamadosPendentes.length === 0 ? (
                       <tr>
@@ -385,7 +444,7 @@ export default function PerfilServiceDesk() {
               <i
                 className={`bi ${mostrarFinalizados ? "bi-chevron-down" : "bi-chevron-right"}`}
               ></i>
-              Chamados Finalizados ({chamadosFinalizados.length})
+              Chamados Finalizados ({pesquisaChamadosFinalizados.length})
             </button>
           </div>
 
@@ -398,10 +457,10 @@ export default function PerfilServiceDesk() {
               ) : (
                 <div className="bg-(--color-monochromatic-5) rounded-2xl shadow-sm overflow-hidden opacity-85">
                   <div className="max-h-64 overflow-y-auto">
-                    <table className="w-full min-w-150">
+                    <table className="w-full min-w-200">
                       <thead className="bg-(--color-monochromatic-3) sticky top-0 z-10">
                         <tr>
-                          <th className="text-(--color-monochromatic-5) text-[10px] sm:text-xs font-bold uppercase tracking-wider px-2 sm:px-4 py-2 sm:py-3 text-left">
+                          <th className="text-(--color-monochromatic-5) text-[10px] sm:text-xs font-bold uppercase tracking-wider px-2 sm:px-4 py-2 sm:py-3 text-left w-20">
                             Nº
                           </th>
                           <th className="text-(--color-monochromatic-5) text-[10px] sm:text-xs font-bold uppercase tracking-wider px-2 sm:px-4 py-2 sm:py-3 text-left">
@@ -416,10 +475,10 @@ export default function PerfilServiceDesk() {
                           <th className="text-(--color-monochromatic-5) text-[10px] sm:text-xs font-bold uppercase tracking-wider px-2 sm:px-4 py-2 sm:py-3 text-left">
                             Concluído por
                           </th>
-                          <th className="text-(--color-monochromatic-5) text-[10px] sm:text-xs font-bold uppercase tracking-wider px-2 sm:px-4 py-2 sm:py-3 text-center">
+                          <th className="text-(--color-monochromatic-5) text-[10px] sm:text-xs font-bold uppercase tracking-wider px-2 sm:px-4 py-2 sm:py-3 text-center w-25">
                             Status
                           </th>
-                          <th className="text-(--color-monochromatic-5) text-[10px] sm:text-xs font-bold uppercase tracking-wider px-2 sm:px-4 py-2 sm:py-3 text-center">
+                          <th className="text-(--color-monochromatic-5) text-[10px] sm:text-xs font-bold uppercase tracking-wider px-2 sm:px-4 py-2 sm:py-3 text-left">
                             Abertura
                           </th>
                         </tr>
@@ -429,19 +488,7 @@ export default function PerfilServiceDesk() {
                           <tr
                             key={chamado.num_chamado}
                             className="hover:bg-(--color-monochromatic-4)/10 transition-colors cursor-pointer border-b border-(--color-monochromatic-4)"
-                            onClick={() =>
-                              AbrirModal({
-                                numero: chamado.num_chamado,
-                                descricao: chamado.categoria,
-                                solicitante: `${chamado.nome_user} ${chamado.sobrenome_user}`,
-                                setor: chamado.setor,
-                                status: chamado.status_ocorrencia,
-                                statusCor: getStatusCor(
-                                  chamado.status_ocorrencia,
-                                ),
-                                comentario: chamado.descricao || "",
-                              })
-                            }
+                            onClick={() => abrirOverview(chamado)}
                           >
                             <td className="px-2 sm:px-4 py-2 sm:py-3 text-(--color-monochromatic-2) font-bold text-xs sm:text-sm whitespace-nowrap">
                               {chamado.num_chamado}
@@ -490,15 +537,13 @@ export default function PerfilServiceDesk() {
           )}
         </div>
 
-        {/* Overlay */}
+        {/* Overlay + Modal */}
         <div
           id="overlay"
           className="fixed inset-0 bg-black/80 z-40"
           style={{ display: "none" }}
           onClick={FecharModal}
         ></div>
-
-        {/* Modal */}
         <div
           id="modalPopUp"
           className="fixed inset-0 sm:top-1/2 sm:left-1/2 sm:-translate-x-1/2 sm:-translate-y-1/2 z-50 sm:max-w-3xl w-full sm:h-auto"
@@ -523,7 +568,6 @@ export default function PerfilServiceDesk() {
                   ></i>
                 </button>
               </div>
-
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4 mb-4">
                 <div>
                   <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-(--color-monochromatic-1)">
@@ -562,7 +606,6 @@ export default function PerfilServiceDesk() {
                   </span>
                 </div>
               </div>
-
               <div className="mb-4">
                 <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-(--color-monochromatic-1)">
                   Status:
@@ -572,7 +615,6 @@ export default function PerfilServiceDesk() {
                   -{" "}
                 </span>
               </div>
-
               <div className="mb-4">
                 <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-(--color-monochromatic-1)">
                   Anexos:
@@ -582,7 +624,6 @@ export default function PerfilServiceDesk() {
                   nota.pdf
                 </span>
               </div>
-
               <div className="mb-4 sm:mb-6">
                 <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-(--color-monochromatic-1) block mb-1">
                   Comentário:
@@ -594,7 +635,6 @@ export default function PerfilServiceDesk() {
                   ></p>
                 </div>
               </div>
-
               <div
                 className="flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-2 sm:gap-3"
                 id="botoesModal"
@@ -612,7 +652,6 @@ export default function PerfilServiceDesk() {
                   onClick={AbrirListaFuncionarios}
                 />
               </div>
-
               <div id="redirecionarFuncionarios" style={{ display: "none" }}>
                 <select
                   name="funcionarios"
@@ -629,7 +668,6 @@ export default function PerfilServiceDesk() {
                     </option>
                   ))}
                 </select>
-
                 <div className="mt-3 flex justify-end gap-3">
                   <BotaoEstilizado
                     icon="bi-send"
@@ -647,6 +685,211 @@ export default function PerfilServiceDesk() {
             </div>
           </div>
         </div>
+
+        {/* MODAL OVERVIEW (FINALIZADOS) */}
+        {modalOverview && dadosOverview && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div
+              className="absolute inset-0 bg-black/70 backdrop-blur-sm"
+              onClick={() => setModalOverview(false)}
+            ></div>
+            <div className="relative bg-(--color-monochromatic-5) rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto">
+              {/* Cabeçalho */}
+              <div className="sticky top-0 bg-(--color-monochromatic-1) px-5 sm:px-6 py-3 flex items-center justify-between rounded-t-2xl z-10">
+                <div className="flex items-center gap-2 sm:gap-3">
+                  <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center shrink-0">
+                    <i className="bi bi-check-lg text-white text-sm"></i>
+                  </div>
+                  <div>
+                    <h2 className="text-(--color-monochromatic-5) font-bold uppercase tracking-wider text-xs sm:text-sm">
+                      Chamado {dadosOverview?.num_chamado} — Finalizado
+                    </h2>
+                    <p className="text-(--color-monochromatic-4) text-[10px]">
+                      {new Date(
+                        dadosOverview?.data_hora_conclusao ||
+                          dadosOverview?.data_hora_ocorrencia,
+                      ).toLocaleDateString("pt-BR")}{" "}
+                      às{" "}
+                      {new Date(
+                        dadosOverview?.data_hora_conclusao ||
+                          dadosOverview?.data_hora_ocorrencia,
+                      ).toLocaleTimeString("pt-BR", {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setModalOverview(false)}
+                  className="text-(--color-monochromatic-4) hover:text-white transition-colors"
+                >
+                  <i className="bi bi-x-lg text-xl"></i>
+                </button>
+              </div>
+
+              <div className="p-4 sm:p-6 space-y-6">
+                {/* Seção: Solicitante */}
+                <div>
+                  <h3 className="text-sm font-bold text-(--color-monochromatic-1) uppercase tracking-wider mb-3 flex items-center gap-2">
+                    <i className="bi bi-person-fill text-(--color-monochromatic-2)"></i>{" "}
+                    Solicitante
+                  </h3>
+                  <div className="bg-(--color-monochromatic-4)/5 rounded-lg p-4 grid grid-cols-2 sm:grid-cols-3 gap-4">
+                    <div>
+                      <span className="text-[10px] font-bold uppercase text-(--color-monochromatic-3) block">
+                        Nome
+                      </span>
+                      <span className="text-xs text-(--color-monochromatic-1)">
+                        {dadosOverview?.nome_user}{" "}
+                        {dadosOverview?.sobrenome_user}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-[10px] font-bold uppercase text-(--color-monochromatic-3) block">
+                        Setor
+                      </span>
+                      <span className="text-xs text-(--color-monochromatic-1)">
+                        {dadosOverview?.setor}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-[10px] font-bold uppercase text-(--color-monochromatic-3) block">
+                        Categoria
+                      </span>
+                      <span className="text-xs text-(--color-monochromatic-1)">
+                        {dadosOverview?.categoria}
+                      </span>
+                    </div>
+                    <div className="col-span-2 sm:col-span-3">
+                      <span className="text-[10px] font-bold uppercase text-(--color-monochromatic-3) block">
+                        Descrição do Problema
+                      </span>
+                      <p className="text-xs text-(--color-monochromatic-2) mt-1">
+                        {dadosOverview?.descricao || "Sem descrição"}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Seção: Atendimento */}
+                <div>
+                  <h3 className="text-sm font-bold text-(--color-monochromatic-1) uppercase tracking-wider mb-3 flex items-center gap-2">
+                    <i className="bi bi-headset text-(--color-monochromatic-2)"></i>{" "}
+                    Atendimento
+                  </h3>
+                  <div className="bg-(--color-monochromatic-4)/5 rounded-lg p-4 grid grid-cols-2 sm:grid-cols-3 gap-4 mb-4">
+                    <div>
+                      <span className="text-[10px] font-bold uppercase text-(--color-monochromatic-3) block">
+                        Concluído por
+                      </span>
+                      <span className="text-xs text-(--color-monochromatic-1)">
+                        {dadosOverview?.username_tecnico
+                          ? `${dadosOverview.username_tecnico} - ${dadosOverview.nome_tecnico} ${dadosOverview.sobrenome_tecnico}`
+                          : "—"}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-[10px] font-bold uppercase text-(--color-monochromatic-3) block">
+                        Status
+                      </span>
+                      <span className="bg-green-100 text-green-800 text-[10px] font-bold px-2 py-0.5 rounded-full">
+                        {dadosOverview?.status_ocorrencia}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-[10px] font-bold uppercase text-(--color-monochromatic-3) block">
+                        Concluído em
+                      </span>
+                      <span className="text-xs text-(--color-monochromatic-1)">
+                        {dadosOverview?.data_hora_conclusao
+                          ? `${new Date(dadosOverview.data_hora_conclusao).toLocaleDateString("pt-BR")} às ${new Date(dadosOverview.data_hora_conclusao).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}`
+                          : "—"}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Linha do tempo dos registros */}
+                  <h4 className="text-xs font-bold text-(--color-monochromatic-2) uppercase tracking-wider mb-3">
+                    <i className="bi bi-clock-history mr-1"></i> Histórico de
+                    Registros ({historicoOverview.length})
+                  </h4>
+                  {historicoOverview.length === 0 ? (
+                    <p className="text-xs text-(--color-monochromatic-3) text-center py-4">
+                      Nenhum registro de atendimento
+                    </p>
+                  ) : (
+                    <div className="space-y-3">
+                      {historicoOverview.map(
+                        (h: MeusRegistros, index: number) => (
+                          <div
+                            key={index}
+                            className="relative pl-6 border-l-2 border-(--color-monochromatic-4)"
+                          >
+                            <div
+                              className={`absolute -left-2.25 top-1 w-4 h-4 rounded-full border-2 border-(--color-monochromatic-5) ${
+                                h.status === "concluido"
+                                  ? "bg-green-500"
+                                  : "bg-amber-500"
+                              }`}
+                            ></div>
+                            <div className="bg-(--color-monochromatic-4)/10 rounded-lg p-3">
+                              <div className="flex items-center justify-between mb-2">
+                                <span className="text-xs font-bold text-(--color-monochromatic-1)">
+                                  {h.login_tecnico}
+                                </span>
+                                <span
+                                  className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                                    h.status === "concluido"
+                                      ? "bg-green-100 text-green-800"
+                                      : "bg-yellow-100 text-yellow-800"
+                                  }`}
+                                >
+                                  {h.status}
+                                </span>
+                              </div>
+                              <p className="text-xs text-(--color-monochromatic-2) mb-2">
+                                {h.comentario || "Sem comentário"}
+                              </p>
+                              <div className="flex flex-wrap items-center gap-2 text-[10px] text-(--color-monochromatic-3)">
+                                <span>
+                                  <i className="bi bi-tag mr-1"></i>
+                                  {h.manifestacao}
+                                </span>
+                                <span>
+                                  <i className="bi bi-folder mr-1"></i>
+                                  {h.grupo_manifestacao}
+                                </span>
+                                {h.tipo_manifestacao !== "—" && (
+                                  <span>
+                                    <i className="bi bi-check2-circle mr-1"></i>
+                                    {h.tipo_manifestacao}
+                                  </span>
+                                )}
+                              </div>
+                              <p className="text-[10px] text-(--color-monochromatic-3) mt-2">
+                                {new Date(
+                                  h.data_hora_atendimento,
+                                ).toLocaleDateString("pt-BR")}{" "}
+                                às{" "}
+                                {new Date(
+                                  h.data_hora_atendimento,
+                                ).toLocaleTimeString("pt-BR", {
+                                  hour: "2-digit",
+                                  minute: "2-digit",
+                                })}
+                              </p>
+                            </div>
+                          </div>
+                        ),
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         <FooterEstilizacao />
       </div>

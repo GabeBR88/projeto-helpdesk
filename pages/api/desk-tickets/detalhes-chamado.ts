@@ -19,6 +19,7 @@ export default async function handler(
   try {
     const [rows] = await pool.query<DetalhesChamado[]>(
       `SELECT 
+        o.id_ocorrencia,
         o.num_chamado,
         c.descricao AS categoria,
         f.nome_user,
@@ -31,11 +32,16 @@ export default async function handler(
         o.anexo,
         o.status_ocorrencia,
         o.prioridade,
-        o.data_hora_ocorrencia
+        o.data_hora_ocorrencia,
+        o.data_hora_conclusao,
+        t.username AS username_tecnico,
+        t.nome_user AS nome_tecnico,
+        t.sobrenome_user AS sobrenome_tecnico
       FROM tbl_ocorrencia o
       JOIN tbl_categorias_ocorrencia c ON o.id_categoria = c.id_categoria
       JOIN tbl_setores_empresa s ON o.id_setor = s.id_setor
       JOIN tbl_funcionarios f ON o.id_user = f.id_user
+      LEFT JOIN tbl_funcionarios t ON o.id_tecnico = t.id_user
       WHERE o.num_chamado = ?`,
       [`#${chamado}`],
     );

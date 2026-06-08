@@ -1,6 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import pool from "@/lib/db";
-import { ChamadosFinalizados } from "@/types/interfaces";
+import { RowDataPacket } from "mysql2";
 
 export default async function handler(
   req: NextApiRequest,
@@ -18,13 +18,13 @@ export default async function handler(
   const { id } = JSON.parse(usuarioCookie);
 
   try {
-    const [rows] = await pool.query<ChamadosFinalizados[]>(
-      "SELECT COUNT(*) AS total FROM tbl_ocorrencia WHERE status_ocorrencia = 'Finalizado' AND DATE(data_hora_conclusao) = CURDATE() AND id_tecnico = ?",
+    const [rows] = await pool.query<RowDataPacket[]>(
+      "SELECT COUNT(*) AS total FROM tbl_ocorrencia WHERE id_tecnico = ? AND status_ocorrencia = 'Em andamento'",
       [id],
     );
     res.status(200).json(rows[0].total);
   } catch (error) {
-    console.error("Erro ao buscar chamados finalizados:", error);
-    res.status(500).json({ erro: "Erro ao buscar chamados finalizados" });
+    console.error("Erro ao buscar pendentes:", error);
+    res.status(500).json({ erro: "Erro ao buscar pendentes" });
   }
 }
