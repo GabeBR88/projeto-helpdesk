@@ -88,3 +88,57 @@ export function FecharListaFuncionarios() {
   ) as HTMLDivElement;
   if (campoListaFuncionarios) campoListaFuncionarios.style.display = "none";
 }
+
+// Função responsável pelo redirecionamento do chamado para outro técnico
+export async function EncaminharChamado(
+  numChamado: string,
+  idTecnicoDestino: number,
+  usernameDestino: string,
+) {
+  // Pega os dados do cookie
+  const usuarioCookie = document.cookie
+    .split("; ")
+    .find((row) => row.startsWith("usuario="))
+    ?.split("=")[1];
+
+  if (!usuarioCookie) {
+    alert("Erro: usuário não autenticado");
+    return false;
+  }
+
+  const usuario = JSON.parse(decodeURIComponent(usuarioCookie));
+  const usernameOrigem = usuario.usuario;
+
+  // Busca o id_ocorrencia pelo número do chamado
+  const numLimpo = numChamado.replace("#", "");
+  const resDetalhes = await fetch(
+    `/api/desk-tickets/detalhes-chamado?chamado=${numLimpo}`,
+  );
+  const dadosChamado = await resDetalhes.json();
+
+  if (!dadosChamado?.id_ocorrencia) {
+    alert("Erro ao identificar o chamado");
+    return false;
+  }
+
+  const resposta = await fetch("/api/desk-tickets/redirecionar", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      id_ocorrencia: dadosChamado.id_ocorrencia,
+      id_tecnico_destino: idTecnicoDestino,
+      username_origem: usernameOrigem,
+      username_destino: usernameDestino,
+    }),
+  });
+
+  const dados = await resposta.json();
+
+  if (!resposta.ok) {
+    alert(dados.erro);
+    return false;
+  }
+
+  alert(dados.mensagem);
+  return true;
+}

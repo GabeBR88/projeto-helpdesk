@@ -170,3 +170,14 @@ export interface MeusRegistros extends RowDataPacket {
   status: string;
   data_hora_atendimento: string;
 }
+
+// Interface para o banco comentarios
+export interface Comentario {
+  id_comentario: number;
+  id_atendimento: number;
+  id_tecnico: number;
+  login_tecnico: string;
+  comentario: string;
+  status: string;
+  data_hora_comentario: string;
+}

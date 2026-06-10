@@ -13,6 +13,7 @@ import {
 import { useRouter } from "next/router";
 import {
   ChamadoSD,
+  Comentario,
   DetalhesChamado,
   MeusRegistros,
   SdSetor,
@@ -69,6 +70,9 @@ export default function PerfilServiceDesk() {
   const [search, setSearch] = useState("");
   const [ativarBotaoPesquisar, setAtivarBotaoPesquisar] = useState("");
   const [chamadoSelecionado, setChamadoSelecionado] = useState<string>("");
+  const [chamadosAtribuidos, setChamadosAtribuidos] = useState<ChamadoSD[]>([]);
+  const [quantidadeRedirecionados, setQuantidadeRedirecionados] =
+    useState<number>(0);
 
   // Modal de overview para finalizados
   const [modalOverview, setModalOverview] = useState(false);
@@ -78,6 +82,9 @@ export default function PerfilServiceDesk() {
   const [historicoOverview, setHistoricoOverview] = useState<MeusRegistros[]>(
     [],
   );
+  const [comentariosOverview, setComentariosOverview] = useState<
+    Record<number, Comentario[]>
+  >({});
 
   useEffect(() => {
     fetch("/api/sd-setor/sd-setor")
@@ -140,12 +147,12 @@ export default function PerfilServiceDesk() {
         })
         .catch(() => {});
 
-      //fetch("/api/desk-tickets/chamados-atribuidos")
-      //  .then((res) => res.json())
-      //  .then((data) => {
-      //    if (montado && Array.isArray(data)) setTodosChamados(data);
-      //  })
-      //  .catch(() => {});
+      fetch("/api/desk-tickets/chamados-atribuidos")
+        .then((res) => res.json())
+        .then((data) => {
+          if (montado && Array.isArray(data)) setChamadosAtribuidos(data);
+        })
+        .catch(() => {});
 
       fetch("/api/desk-tickets/chamados-abertos")
         .then((res) => res.json())
@@ -165,6 +172,14 @@ export default function PerfilServiceDesk() {
         .then((res) => res.json())
         .then((data) => {
           if (montado && typeof data === "number") setMinhasPendentes(data);
+        })
+        .catch(() => {});
+
+      fetch("/api/status/chamados-redirecionados")
+        .then((res) => res.json())
+        .then((data) => {
+          if (montado && typeof data === "number")
+            setQuantidadeRedirecionados(data);
         })
         .catch(() => {});
 
@@ -200,8 +215,27 @@ export default function PerfilServiceDesk() {
       const detalhes = await resDetalhes.json();
       const historico = await resHistorico.json();
 
+      // Filtra registros de redirecionamento
+      const historicoFiltrado = Array.isArray(historico)
+        ? historico.filter((h: MeusRegistros) => h.status !== "redirecionado")
+        : [];
+
       setDadosOverview(detalhes);
-      setHistoricoOverview(Array.isArray(historico) ? historico : []);
+      setHistoricoOverview(historicoFiltrado);
+
+      // Carrega comentários para cada registro
+      const comentariosMap: Record<number, Comentario[]> = {};
+      await Promise.all(
+        historicoFiltrado.map(async (h: MeusRegistros) => {
+          const res = await fetch(
+            `/api/desk-tickets/comentarios?id_atendimento=${h.id_atendimento}`,
+          );
+          const data = await res.json();
+          comentariosMap[h.id_atendimento] = Array.isArray(data) ? data : [];
+        }),
+      );
+      setComentariosOverview(comentariosMap);
+
       setModalOverview(true);
     } catch (error) {
       console.error("Erro ao carregar overview:", error);
@@ -224,6 +258,17 @@ export default function PerfilServiceDesk() {
   const searchLowerCase = ativarBotaoPesquisar.toLowerCase();
 
   const pesquisaChamadosPendentes = chamadosAbertos.filter((chamado) => {
+    const nomeCompleto =
+      `${chamado.nome_user} ${chamado.sobrenome_user}`.toLowerCase();
+    return (
+      chamado.num_chamado.toLowerCase().includes(searchLowerCase) ||
+      nomeCompleto.includes(searchLowerCase) ||
+      chamado.setor.toLowerCase().includes(searchLowerCase) ||
+      chamado.categoria.toLowerCase().includes(searchLowerCase)
+    );
+  });
+
+  const pesquisaChamadosAtribuidos = chamadosAtribuidos.filter((chamado) => {
     const nomeCompleto =
       `${chamado.nome_user} ${chamado.sobrenome_user}`.toLowerCase();
     return (
@@ -308,7 +353,7 @@ export default function PerfilServiceDesk() {
               />
 
               <CardIndicativo
-                quantidade={quantidadePendente}
+                quantidade={quantidadeRedirecionados}
                 textoIndicativo="Chamados Redirecionados"
                 title="Chamados que foram redirecionados para você"
               />
@@ -374,6 +419,109 @@ export default function PerfilServiceDesk() {
                       </tr>
                     ) : (
                       pesquisaChamadosPendentes.map((chamado) => (
+                        <tr
+                          key={chamado.num_chamado}
+                          className="hover:bg-(--color-monochromatic-4)/20 transition-colors cursor-pointer border-b border-(--color-monochromatic-4)"
+                          onClick={() => {
+                            setChamadoSelecionado(chamado.num_chamado);
+                            AbrirModal({
+                              numero: chamado.num_chamado,
+                              descricao: chamado.categoria,
+                              solicitante: `${chamado.nome_user} ${chamado.sobrenome_user}`,
+                              setor: chamado.setor,
+                              status: chamado.status_ocorrencia,
+                              statusCor: getStatusCor(
+                                chamado.status_ocorrencia,
+                              ),
+                              comentario:
+                                chamado.descricao || "Nenhum comentário",
+                            });
+                          }}
+                        >
+                          <td className="px-2 sm:px-4 py-2 sm:py-3 text-(--color-monochromatic-1) font-bold text-xs sm:text-sm whitespace-nowrap">
+                            {chamado.num_chamado}
+                          </td>
+                          <td className="px-2 sm:px-4 py-2 sm:py-3 text-(--color-monochromatic-1) text-xs sm:text-sm">
+                            {chamado.categoria}
+                          </td>
+                          <td className="px-2 sm:px-4 py-2 sm:py-3 text-(--color-monochromatic-1) text-xs sm:text-sm whitespace-nowrap hidden sm:table-cell">
+                            {chamado.nome_user} {chamado.sobrenome_user}
+                          </td>
+                          <td className="px-2 sm:px-4 py-2 sm:py-3 text-(--color-monochromatic-1) text-xs sm:text-sm whitespace-nowrap hidden md:table-cell">
+                            {chamado.setor}
+                          </td>
+                          <td className="px-2 sm:px-4 py-2 sm:py-3 text-center">
+                            <span
+                              className={getStatusCor(
+                                chamado.status_ocorrencia,
+                              )}
+                            >
+                              {chamado.status_ocorrencia}
+                            </span>
+                          </td>
+                          <td className="px-2 sm:px-4 py-2 sm:py-3 text-(--color-monochromatic-1) text-xs sm:text-sm whitespace-nowrap">
+                            {new Date(
+                              chamado.data_hora_ocorrencia,
+                            ).toLocaleDateString("pt-BR")}{" "}
+                            às{" "}
+                            {new Date(
+                              chamado.data_hora_ocorrencia,
+                            ).toLocaleTimeString("pt-BR", {
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            })}
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          {/* TABELA ATRIBUÍDOS */}
+          <div className="interface py-4 sm:py-6 px-2 sm:px-0">
+            <h2 className="text-base sm:text-lg font-bold text-(--color-monochromatic-1) uppercase tracking-wider mb-3 sm:mb-4">
+              <i className="bi bi-list-check mr-2"></i> Chamados Atribuídos
+            </h2>
+            <div className="bg-(--color-monochromatic-5) rounded-2xl shadow-sm overflow-hidden">
+              <div className="max-h-64 overflow-y-auto">
+                <table className="w-full min-w-175">
+                  <thead className="bg-(--color-monochromatic-1) sticky top-0 z-10">
+                    <tr>
+                      <th className="text-(--color-monochromatic-5) text-[10px] sm:text-xs font-bold uppercase tracking-wider px-2 sm:px-4 py-2 sm:py-3 text-left w-22.5">
+                        Nº Chamado
+                      </th>
+                      <th className="text-(--color-monochromatic-5) text-[10px] sm:text-xs font-bold uppercase tracking-wider px-2 sm:px-4 py-2 sm:py-3 text-left">
+                        Categoria
+                      </th>
+                      <th className="text-(--color-monochromatic-5) text-[10px] sm:text-xs font-bold uppercase tracking-wider px-2 sm:px-4 py-2 sm:py-3 text-left hidden sm:table-cell">
+                        Solicitante
+                      </th>
+                      <th className="text-(--color-monochromatic-5) text-[10px] sm:text-xs font-bold uppercase tracking-wider px-2 sm:px-4 py-2 sm:py-3 text-left hidden md:table-cell">
+                        Setor
+                      </th>
+                      <th className="text-(--color-monochromatic-5) text-[10px] sm:text-xs font-bold uppercase tracking-wider px-2 sm:px-4 py-2 sm:py-3 text-center w-25">
+                        Status
+                      </th>
+                      <th className="text-(--color-monochromatic-5) text-[10px] sm:text-xs font-bold uppercase tracking-wider px-2 sm:px-4 py-2 sm:py-3 text-left">
+                        Data de abertura
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {pesquisaChamadosAtribuidos.length === 0 ? (
+                      <tr>
+                        <td
+                          colSpan={6}
+                          className="text-center text-(--color-monochromatic-3) text-xs py-8"
+                        >
+                          Nenhum chamado foi aberto
+                        </td>
+                      </tr>
+                    ) : (
+                      pesquisaChamadosAtribuidos.map((chamado) => (
                         <tr
                           key={chamado.num_chamado}
                           className="hover:bg-(--color-monochromatic-4)/20 transition-colors cursor-pointer border-b border-(--color-monochromatic-4)"
@@ -663,7 +811,7 @@ export default function PerfilServiceDesk() {
                     Selecione...
                   </option>
                   {serviceDesk.map((sd) => (
-                    <option key={sd.id_user} value={sd.username}>
+                    <option key={sd.id_user} value={sd.id_user}>
                       {sd.nome_user} {sd.sobrenome_user} - {sd.username}
                     </option>
                   ))}
@@ -673,7 +821,36 @@ export default function PerfilServiceDesk() {
                     icon="bi-send"
                     texto="Encaminhar"
                     id="btEncaminharChamado"
+                    onClick={async () => {
+                      const select = document.getElementById(
+                        "listaFuncionarios",
+                      ) as HTMLSelectElement;
+                      const idTecnico = Number(select.value);
+                      const textoSelecionado =
+                        select.options[select.selectedIndex]?.text || "";
+                      const usernameDestino =
+                        textoSelecionado.split(" - ")[1] || "";
+
+                      if (!idTecnico || !chamadoSelecionado) {
+                        alert("Selecione um técnico");
+                        return;
+                      }
+
+                      const { EncaminharChamado } = await import("./script");
+                      const sucesso = await EncaminharChamado(
+                        chamadoSelecionado,
+                        idTecnico,
+                        usernameDestino,
+                      );
+
+                      if (sucesso) {
+                        FecharListaFuncionarios();
+                        FecharModal();
+                        window.location.reload();
+                      }
+                    }}
                   />
+
                   <BotaoEstilizado
                     icon="bi-x-circle-fill"
                     texto="Cancelar"
@@ -830,7 +1007,9 @@ export default function PerfilServiceDesk() {
                               className={`absolute -left-2.25 top-1 w-4 h-4 rounded-full border-2 border-(--color-monochromatic-5) ${
                                 h.status === "concluido"
                                   ? "bg-green-500"
-                                  : "bg-amber-500"
+                                  : h.status === "redirecionado"
+                                    ? "bg-blue-500"
+                                    : "bg-amber-500"
                               }`}
                             ></div>
                             <div className="bg-(--color-monochromatic-4)/10 rounded-lg p-3">
@@ -842,16 +1021,80 @@ export default function PerfilServiceDesk() {
                                   className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
                                     h.status === "concluido"
                                       ? "bg-green-100 text-green-800"
-                                      : "bg-yellow-100 text-yellow-800"
+                                      : h.status === "redirecionado"
+                                        ? "bg-blue-100 text-blue-800"
+                                        : "bg-yellow-100 text-yellow-800"
                                   }`}
                                 >
                                   {h.status}
                                 </span>
                               </div>
-                              <p className="text-xs text-(--color-monochromatic-2) mb-2">
-                                {h.comentario || "Sem comentário"}
-                              </p>
-                              <div className="flex flex-wrap items-center gap-2 text-[10px] text-(--color-monochromatic-3)">
+
+                              {/* Comentário original do registro */}
+                              <div className="mb-2 bg-(--color-monochromatic-4)/5 rounded p-2 border-l-2 border-(--color-monochromatic-3)">
+                                <p className="text-xs text-(--color-monochromatic-2)">
+                                  {h.comentario || "Sem comentário"}
+                                </p>
+                                <p className="text-[10px] text-(--color-monochromatic-3) mt-1">
+                                  {new Date(
+                                    h.data_hora_atendimento,
+                                  ).toLocaleDateString("pt-BR")}{" "}
+                                  às{" "}
+                                  {new Date(
+                                    h.data_hora_atendimento,
+                                  ).toLocaleTimeString("pt-BR", {
+                                    hour: "2-digit",
+                                    minute: "2-digit",
+                                  })}
+                                </p>
+                              </div>
+
+                              {/* Comentários adicionais */}
+                              {comentariosOverview[h.id_atendimento]?.length >
+                                0 && (
+                                <div className="space-y-2 mt-2">
+                                  {comentariosOverview[h.id_atendimento].map(
+                                    (c, i) => (
+                                      <div
+                                        key={i}
+                                        className="bg-(--color-monochromatic-4)/5 rounded p-2 border-l-2 border-(--color-monochromatic-2)"
+                                      >
+                                        <div className="flex items-center justify-between mb-1">
+                                          <span className="text-[10px] font-bold text-(--color-monochromatic-1)">
+                                            {c.login_tecnico}
+                                          </span>
+                                          <span
+                                            className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                                              c.status === "concluido"
+                                                ? "bg-green-100 text-green-800"
+                                                : "bg-yellow-100 text-yellow-800"
+                                            }`}
+                                          >
+                                            {c.status}
+                                          </span>
+                                        </div>
+                                        <p className="text-xs text-(--color-monochromatic-2)">
+                                          {c.comentario}
+                                        </p>
+                                        <p className="text-[10px] text-(--color-monochromatic-3) mt-1">
+                                          {new Date(
+                                            c.data_hora_comentario,
+                                          ).toLocaleDateString("pt-BR")}{" "}
+                                          às{" "}
+                                          {new Date(
+                                            c.data_hora_comentario,
+                                          ).toLocaleTimeString("pt-BR", {
+                                            hour: "2-digit",
+                                            minute: "2-digit",
+                                          })}
+                                        </p>
+                                      </div>
+                                    ),
+                                  )}
+                                </div>
+                              )}
+
+                              <div className="flex flex-wrap items-center gap-2 text-[10px] text-(--color-monochromatic-3) mt-2">
                                 <span>
                                   <i className="bi bi-tag mr-1"></i>
                                   {h.manifestacao}
@@ -867,18 +1110,6 @@ export default function PerfilServiceDesk() {
                                   </span>
                                 )}
                               </div>
-                              <p className="text-[10px] text-(--color-monochromatic-3) mt-2">
-                                {new Date(
-                                  h.data_hora_atendimento,
-                                ).toLocaleDateString("pt-BR")}{" "}
-                                às{" "}
-                                {new Date(
-                                  h.data_hora_atendimento,
-                                ).toLocaleTimeString("pt-BR", {
-                                  hour: "2-digit",
-                                  minute: "2-digit",
-                                })}
-                              </p>
                             </div>
                           </div>
                         ),

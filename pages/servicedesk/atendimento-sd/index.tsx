@@ -10,6 +10,7 @@ import {
   TipoManifestacao,
   StatusSD,
   MeusRegistros,
+  Comentario,
 } from "@/types/interfaces";
 
 export default function PainelAtendimentoSD() {
@@ -63,14 +64,12 @@ export default function PainelAtendimentoSD() {
       fetch(`/api/desk-tickets/detalhes-chamado?chamado=${numeroChamado}`)
         .then((res) => res.json())
         .then((data) => {
-          console.log("📦 Dados do chamado:", data);
           setDadosChamado(data);
         })
         .catch((err) => console.error("Erro ao buscar chamado:", err));
     }
   }, [numeroChamado]);
 
-  // Aqui as informações da Manifestação serão inseridas
   // Manifestação
   const [manifestacao, setManifestacao] = useState<Manifestacao[]>([]);
   const [manifestacaoSelecionada, setManifestacaoSelecionada] = useState("");
@@ -136,7 +135,7 @@ export default function PainelAtendimentoSD() {
           setTipoSelecionado("");
         });
     } else {
-      // eslint-disable-next-line
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setTipoManifestacao([]);
       setTipoSelecionado("");
     }
@@ -162,7 +161,9 @@ export default function PainelAtendimentoSD() {
         setStatus([]);
       });
   }, []);
+
   const [comentario, setComentario] = useState("");
+
   const handleCancelar = () => {
     setManifestacaoSelecionada("");
     setGrupoSelecionado("");
@@ -178,7 +179,7 @@ export default function PainelAtendimentoSD() {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        id_ocorrencia: dadosChamado?.id_ocorrencia, // ← Precisa do ID da ocorrência
+        id_ocorrencia: dadosChamado?.id_ocorrencia,
         manifestacao: manifestacaoSelecionada,
         grupo: grupoSelecionado,
         tipo: tipoSelecionado,
@@ -213,6 +214,7 @@ export default function PainelAtendimentoSD() {
   };
 
   const [historico, setHistorico] = useState<MeusRegistros[]>([]);
+
   useEffect(() => {
     if (numeroChamado) {
       fetch(`/api/desk-tickets/meus-registros?chamado=${numeroChamado}`)
@@ -224,43 +226,65 @@ export default function PainelAtendimentoSD() {
     }
   }, [numeroChamado]);
 
-  // Novos estados
-  const [modalHistorico, setModalHistorico] = useState(false);
+  // Filtra registros que NÃO são de redirecionamento
+  const registrosTecnico = historico.filter(
+    (h) => h.status !== "redirecionado",
+  );
+
+  // Tem registro feito por técnico (que não seja redirecionamento)?
+  const temRegistroTecnico = registrosTecnico.length > 0;
+
+  // Último registro do técnico (para verificar se está concluído)
+  const ultimoRegistroTecnico = registrosTecnico[0];
+
+  // Se tem registro do técnico com status "concluido", bloqueia tudo
+  const tecnicoFinalizou = ultimoRegistroTecnico?.status === "concluido";
+
+  // O formulário de Registro de Atendimento só fica ativo se:
+  // - NÃO tem registro de técnico ainda (independente de ter redirecionamento)
+  const formularioAtivo = !temRegistroTecnico;
+
+  // ========== MODAL INDIVIDUAL ==========
+  const [modalRegistro, setModalRegistro] = useState(false);
+  const [registroSelecionado, setRegistroSelecionado] =
+    useState<MeusRegistros | null>(null);
   const [novoComentario, setNovoComentario] = useState("");
   const [novoStatus, setNovoStatus] = useState("");
+  const [comentarios, setComentarios] = useState<Comentario[]>([]);
 
-  const registroFinalizado = dadosChamado?.status_ocorrencia === "Finalizado";
-  const ultimoRegistro = historico[0]; // Primeiro da lista (mais recente pelo DESC)
-
-  const abrirModalHistorico = () => {
-    setModalHistorico(true);
+  const abrirModalRegistro = async (registro: MeusRegistros) => {
+    setRegistroSelecionado(registro);
     setNovoComentario("");
     setNovoStatus("");
+    setModalRegistro(true);
+
+    // Carrega os comentários desse atendimento
+    fetch(
+      `/api/desk-tickets/comentarios?id_atendimento=${registro.id_atendimento}`,
+    )
+      .then((res) => res.json())
+      .then((data) => {
+        if (Array.isArray(data)) setComentarios(data);
+      })
+      .catch(() => setComentarios([]));
   };
 
-  const salvarNovoRegistro = async (e: React.FormEvent) => {
+  const salvarNovoComentario = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    const body = {
-      id_ocorrencia: dadosChamado?.id_ocorrencia,
-      manifestacao:
-        manifestacaoSelecionada || ultimoRegistro?.manifestacao_codigo, // ← CÓDIGO
-      grupo: grupoSelecionado || ultimoRegistro?.grupo_manifestacao_codigo, // ← CÓDIGO
-      tipo: tipoSelecionado || ultimoRegistro?.tipo_manifestacao_codigo,
-      comentario: novoComentario,
-      status: novoStatus,
-    };
+    if (!registroSelecionado) return;
 
-    console.log("📤 Enviando:", body);
-
-    const resposta = await fetch("/api/desk-tickets/salvar-registro", {
+    const resposta = await fetch("/api/desk-tickets/salvar-comentario", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
+      body: JSON.stringify({
+        id_atendimento: registroSelecionado.id_atendimento,
+        comentario: novoComentario,
+        status: novoStatus,
+      }),
     });
 
     const dados = await resposta.json();
-    console.log("📥 Resposta:", dados);
 
     if (!resposta.ok) {
       alert(dados.erro);
@@ -271,18 +295,13 @@ export default function PainelAtendimentoSD() {
     setNovoComentario("");
     setNovoStatus("");
 
-    // Recarrega histórico
-    fetch(`/api/desk-tickets/meus-registros?chamado=${numeroChamado}`)
+    // Recarrega os comentários do modal
+    fetch(
+      `/api/desk-tickets/comentarios?id_atendimento=${registroSelecionado.id_atendimento}`,
+    )
       .then((res) => res.json())
       .then((data) => {
-        if (Array.isArray(data)) setHistorico(data);
-      });
-
-    // Recarrega histórico
-    fetch(`/api/desk-tickets/meus-registros?chamado=${numeroChamado}`)
-      .then((res) => res.json())
-      .then((data) => {
-        if (Array.isArray(data)) setHistorico(data);
+        if (Array.isArray(data)) setComentarios(data);
       });
 
     // Recarrega dados do chamado (para atualizar o status)
@@ -291,9 +310,21 @@ export default function PainelAtendimentoSD() {
       .then((data) => {
         setDadosChamado(data);
       });
+
+    // Recarrega histórico também (pois o status pode ter mudado)
+    fetch(`/api/desk-tickets/meus-registros?chamado=${numeroChamado}`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (Array.isArray(data)) setHistorico(data);
+      });
   };
 
-  const temRegistro = historico.length > 0;
+  // Verifica se o registro selecionado no modal pode receber novos comentários
+  const podeComentar =
+    registroSelecionado &&
+    registroSelecionado.status !== "redirecionado" &&
+    registroSelecionado.status !== "concluido" &&
+    !tecnicoFinalizou;
 
   if (loading) {
     return (
@@ -433,7 +464,16 @@ export default function PainelAtendimentoSD() {
                         <span className="text-[10px] font-bold uppercase tracking-wider text-(--color-monochromatic-3) block">
                           Status
                         </span>
-                        <span className="bg-red-100 text-red-800 text-[10px] font-bold px-2 py-0.5 rounded-full inline-block mt-0.5">
+                        <span
+                          className={`text-[10px] font-bold px-2 py-0.5 rounded-full inline-block mt-0.5 ${
+                            dadosChamado?.status_ocorrencia === "Finalizado"
+                              ? "bg-green-100 text-green-800"
+                              : dadosChamado?.status_ocorrencia ===
+                                  "Em tratamento"
+                                ? "bg-amber-100 text-amber-800"
+                                : "bg-yellow-100 text-yellow-800"
+                          }`}
+                        >
                           {dadosChamado?.status_ocorrencia}
                         </span>
                       </div>
@@ -515,10 +555,10 @@ export default function PainelAtendimentoSD() {
                           onChange={(e) =>
                             setManifestacaoSelecionada(e.target.value)
                           }
-                          disabled={temRegistro}
+                          disabled={!formularioAtivo}
                           required
                           className={`w-full px-3 sm:px-4 py-2.5 sm:py-3 bg-(--color-monochromatic-4)/20 border-2 border-(--color-monochromatic-4) focus:border-(--color-monochromatic-1) focus:bg-white outline-none transition-all duration-200 text-(--color-monochromatic-1) text-xs sm:text-sm ${
-                            temRegistro
+                            !formularioAtivo
                               ? "opacity-50 cursor-not-allowed"
                               : "cursor-pointer"
                           }`}
@@ -545,10 +585,10 @@ export default function PainelAtendimentoSD() {
                         </label>
                         <select
                           value={grupoSelecionado}
-                          disabled={temRegistro}
+                          disabled={!formularioAtivo}
                           onChange={(e) => setGrupoSelecionado(e.target.value)}
                           className={`w-full px-3 sm:px-4 py-2.5 sm:py-3 bg-(--color-monochromatic-4)/20 border-2 border-(--color-monochromatic-4) focus:border-(--color-monochromatic-1) focus:bg-white outline-none transition-all duration-200 text-(--color-monochromatic-1) text-xs sm:text-sm ${
-                            temRegistro
+                            !formularioAtivo
                               ? "opacity-50 cursor-not-allowed"
                               : "cursor-pointer"
                           }`}
@@ -575,11 +615,11 @@ export default function PainelAtendimentoSD() {
                         </label>
                         <select
                           value={tipoSelecionado}
-                          disabled={temRegistro}
+                          disabled={!formularioAtivo}
                           onChange={(e) => setTipoSelecionado(e.target.value)}
                           required
                           className={`w-full px-3 sm:px-4 py-2.5 sm:py-3 bg-(--color-monochromatic-4)/20 border-2 border-(--color-monochromatic-4) focus:border-(--color-monochromatic-1) focus:bg-white outline-none transition-all duration-200 text-(--color-monochromatic-1) text-xs sm:text-sm ${
-                            temRegistro
+                            !formularioAtivo
                               ? "opacity-50 cursor-not-allowed"
                               : "cursor-pointer"
                           }`}
@@ -607,7 +647,7 @@ export default function PainelAtendimentoSD() {
                       </label>
                       <textarea
                         value={comentario}
-                        disabled={temRegistro}
+                        disabled={!formularioAtivo}
                         onChange={(e) => setComentario(e.target.value)}
                         rows={4}
                         className="w-full px-3 sm:px-4 py-2.5 sm:py-3 bg-(--color-monochromatic-4)/20 border-2 border-(--color-monochromatic-4) focus:border-(--color-monochromatic-1) focus:bg-white outline-none transition-all duration-200 text-(--color-monochromatic-1) placeholder-(--color-monochromatic-3) text-xs sm:text-sm resize-y"
@@ -625,11 +665,11 @@ export default function PainelAtendimentoSD() {
                         </label>
                         <select
                           value={statusSelecionado}
-                          disabled={temRegistro}
+                          disabled={!formularioAtivo}
                           onChange={(e) => setStatusSelecionado(e.target.value)}
                           id="statusAtendimento"
                           className={`w-full px-3 sm:px-4 py-2.5 sm:py-3 bg-(--color-monochromatic-4)/20 border-2 border-(--color-monochromatic-4) focus:border-(--color-monochromatic-1) focus:bg-white outline-none transition-all duration-200 text-(--color-monochromatic-1) text-xs sm:text-sm ${
-                            temRegistro
+                            !formularioAtivo
                               ? "opacity-50 cursor-not-allowed"
                               : "cursor-pointer"
                           }`}
@@ -647,7 +687,8 @@ export default function PainelAtendimentoSD() {
 
                       <div className="flex items-center gap-3">
                         <button
-                          disabled={temRegistro}
+                          type="button"
+                          disabled={!formularioAtivo}
                           className="flex items-center gap-2 text-xs sm:text-sm text-(--color-monochromatic-2) hover:text-(--color-monochromatic-1) transition-colors font-medium cursor-pointer"
                           onClick={handleCancelar}
                         >
@@ -656,9 +697,11 @@ export default function PainelAtendimentoSD() {
                         </button>
                         <button
                           type="submit"
-                          disabled={temRegistro}
+                          disabled={!formularioAtivo}
                           className={`bg-(--color-monochromatic-1) text-(--color-monochromatic-5) text-xs sm:text-sm px-4 sm:px-5 py-2 sm:py-2.5 font-bold uppercase tracking-wider hover:bg-(--color-monochromatic-2) transition-colors duration-200 rounded-lg flex items-center gap-2 ${
-                            temRegistro ? "opacity-50 cursor-not-allowed" : ""
+                            !formularioAtivo
+                              ? "opacity-50 cursor-not-allowed"
+                              : ""
                           }`}
                         >
                           <i className="bi bi-check-lg"></i>
@@ -725,53 +768,55 @@ export default function PainelAtendimentoSD() {
                           </td>
                         </tr>
                       ) : (
-                        <tr className="border-b border-(--color-monochromatic-4) hover:bg-(--color-monochromatic-4)/10 transition-colors">
-                          <td className="px-2 sm:px-4 py-3 text-(--color-monochromatic-1) font-bold text-xs whitespace-nowrap">
-                            {ultimoRegistro?.num_chamado}
-                          </td>
-                          <td className="px-2 sm:px-4 py-3 text-(--color-monochromatic-1) text-xs whitespace-nowrap">
-                            {ultimoRegistro?.login_tecnico}
-                          </td>
-                          <td className="px-2 sm:px-4 py-3 text-(--color-monochromatic-1) text-xs whitespace-nowrap hidden sm:table-cell">
-                            {ultimoRegistro?.manifestacao}
-                          </td>
-                          <td className="px-2 sm:px-4 py-3 text-center hidden md:table-cell">
-                            <span
-                              className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                                dadosChamado?.status_ocorrencia === "Finalizado"
-                                  ? "bg-green-100 text-green-800"
-                                  : dadosChamado?.status_ocorrencia ===
-                                      "Em andamento"
-                                    ? "bg-amber-100 text-amber-800"
-                                    : "bg-yellow-100 text-yellow-800"
-                              }`}
-                            >
-                              {dadosChamado?.status_ocorrencia}
-                            </span>
-                          </td>
-                          <td className="px-2 sm:px-4 py-3 text-(--color-monochromatic-1) text-xs whitespace-nowrap">
-                            {ultimoRegistro &&
-                              new Date(
-                                ultimoRegistro.data_hora_atendimento,
+                        historico.map((registro, index) => (
+                          <tr
+                            key={index}
+                            className="border-b border-(--color-monochromatic-4) hover:bg-(--color-monochromatic-4)/10 transition-colors"
+                          >
+                            <td className="px-2 sm:px-4 py-3 text-(--color-monochromatic-1) font-bold text-xs whitespace-nowrap">
+                              {registro.num_chamado}
+                            </td>
+                            <td className="px-2 sm:px-4 py-3 text-(--color-monochromatic-1) text-xs whitespace-nowrap">
+                              {registro.login_tecnico}
+                            </td>
+                            <td className="px-2 sm:px-4 py-3 text-(--color-monochromatic-1) text-xs whitespace-nowrap hidden sm:table-cell">
+                              {registro.manifestacao}
+                            </td>
+                            <td className="px-2 sm:px-4 py-3 text-center hidden md:table-cell">
+                              <span
+                                className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                                  registro.status === "concluido"
+                                    ? "bg-green-100 text-green-800"
+                                    : registro.status === "redirecionado"
+                                      ? "bg-blue-100 text-blue-800"
+                                      : "bg-yellow-100 text-yellow-800"
+                                }`}
+                              >
+                                {registro.status}
+                              </span>
+                            </td>
+                            <td className="px-2 sm:px-4 py-3 text-(--color-monochromatic-1) text-xs whitespace-nowrap">
+                              {new Date(
+                                registro.data_hora_atendimento,
                               ).toLocaleDateString("pt-BR")}{" "}
-                            às{" "}
-                            {ultimoRegistro &&
-                              new Date(
-                                ultimoRegistro.data_hora_atendimento,
+                              às{" "}
+                              {new Date(
+                                registro.data_hora_atendimento,
                               ).toLocaleTimeString("pt-BR", {
                                 hour: "2-digit",
                                 minute: "2-digit",
                               })}
-                          </td>
-                          <td className="px-2 sm:px-4 py-3 text-center">
-                            <button
-                              onClick={abrirModalHistorico}
-                              className="text-xs font-bold text-(--color-monochromatic-1) hover:text-(--color-monochromatic-2) underline transition-colors cursor-pointer"
-                            >
-                              Ver Detalhes
-                            </button>
-                          </td>
-                        </tr>
+                            </td>
+                            <td className="px-2 sm:px-4 py-3 text-center">
+                              <button
+                                onClick={() => abrirModalRegistro(registro)}
+                                className="text-xs font-bold text-(--color-monochromatic-1) hover:text-(--color-monochromatic-2) underline transition-colors cursor-pointer"
+                              >
+                                Ver Detalhes
+                              </button>
+                            </td>
+                          </tr>
+                        ))
                       )}
                     </tbody>
                   </table>
@@ -780,35 +825,64 @@ export default function PainelAtendimentoSD() {
             </div>
           </div>
 
-          {/* Modal Histórico */}
-          {modalHistorico && (
+          {/* Modal Individual do Registro */}
+          {/* Modal Individual do Registro */}
+          {modalRegistro && registroSelecionado && (
             <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
               {/* Overlay */}
               <div
                 className="absolute inset-0 bg-black/70 backdrop-blur-sm"
-                onClick={() => setModalHistorico(false)}
+                onClick={() => setModalRegistro(false)}
               ></div>
 
               {/* Modal */}
               <div className="relative bg-(--color-monochromatic-5) rounded-2xl shadow-2xl w-full max-w-2xl max-h-[85vh] overflow-y-auto">
                 {/* Cabeçalho */}
-                <div className="sticky top-0 bg-(--color-monochromatic-1) px-5 sm:px-6 py-3 flex items-center justify-between rounded-t-2xl z-10">
+                <div
+                  className={`sticky top-0 px-5 sm:px-6 py-3 flex items-center justify-between rounded-t-2xl z-10 ${
+                    registroSelecionado.status === "redirecionado"
+                      ? "bg-blue-600"
+                      : registroSelecionado.status === "concluido"
+                        ? "bg-green-600"
+                        : "bg-(--color-monochromatic-1)"
+                  }`}
+                >
                   <div className="flex items-center gap-2 sm:gap-3">
-                    <div className="w-8 h-8 bg-(--color-monochromatic-2) rounded-full flex items-center justify-center shrink-0">
-                      <i className="bi bi-clock-history text-(--color-monochromatic-5) text-sm"></i>
+                    <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center shrink-0">
+                      <i
+                        className={`text-white text-sm ${
+                          registroSelecionado.status === "redirecionado"
+                            ? "bi bi-arrow-left-right"
+                            : registroSelecionado.status === "concluido"
+                              ? "bi bi-check-circle-fill"
+                              : "bi bi-clock-history"
+                        }`}
+                      ></i>
                     </div>
                     <div>
-                      <h2 className="text-(--color-monochromatic-5) font-bold uppercase tracking-wider text-xs sm:text-sm">
-                        Histórico do Chamado {dadosChamado?.num_chamado}
+                      <h2 className="text-white font-bold uppercase tracking-wider text-xs sm:text-sm">
+                        {registroSelecionado.status === "redirecionado"
+                          ? "Registro de Redirecionamento"
+                          : "Registro de Atendimento"}
                       </h2>
-                      <p className="text-(--color-monochromatic-4) text-[10px]">
-                        {historico.length} registro(s)
+                      <p className="text-white/70 text-[10px]">
+                        {registroSelecionado.login_tecnico} •{" "}
+                        {new Date(
+                          registroSelecionado.data_hora_atendimento,
+                        ).toLocaleDateString("pt-BR")}{" "}
+                        às{" "}
+                        {new Date(
+                          registroSelecionado.data_hora_atendimento,
+                        ).toLocaleTimeString("pt-BR", {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
                       </p>
                     </div>
                   </div>
                   <button
-                    onClick={() => setModalHistorico(false)}
-                    className="text-(--color-monochromatic-4) hover:text-white transition-colors"
+                    onClick={() => setModalRegistro(false)}
+                    className="text-white/70 hover:text-white transition-colors"
                   >
                     <i className="bi bi-x-lg text-xl"></i>
                   </button>
@@ -816,80 +890,177 @@ export default function PainelAtendimentoSD() {
 
                 {/* Corpo */}
                 <div className="p-4 sm:p-6 space-y-4">
-                  {/* Linha do tempo */}
-                  {historico.map((h, index) => (
-                    <div
-                      key={index}
-                      className="relative pl-6 border-l-2 border-(--color-monochromatic-4)"
+                  {/* Status Badge */}
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-bold text-(--color-monochromatic-1)">
+                      Status:
+                    </span>
+                    <span
+                      className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                        registroSelecionado.status === "concluido"
+                          ? "bg-green-100 text-green-800"
+                          : registroSelecionado.status === "redirecionado"
+                            ? "bg-blue-100 text-blue-800"
+                            : "bg-yellow-100 text-yellow-800"
+                      }`}
                     >
-                      {/* Bolinha */}
-                      <div
-                        className={`absolute -left-2.25 top-1 w-4 h-4 rounded-full border-2 border-(--color-monochromatic-5) ${
-                          h.status === "concluido"
-                            ? "bg-green-500"
-                            : "bg-amber-500"
-                        }`}
-                      ></div>
+                      {registroSelecionado.status}
+                    </span>
+                  </div>
 
-                      {/* Conteúdo */}
-                      <div className="bg-(--color-monochromatic-4)/5 rounded-lg p-3 sm:p-4">
-                        <div className="flex items-center justify-between mb-2">
-                          <span className="text-xs font-bold text-(--color-monochromatic-1)">
-                            {h.login_tecnico}
-                          </span>
-                          <span
-                            className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                              h.status === "concluido"
-                                ? "bg-green-100 text-green-800"
-                                : "bg-yellow-100 text-yellow-800"
-                            }`}
-                          >
-                            {h.status}
-                          </span>
-                        </div>
-                        <p className="text-xs text-(--color-monochromatic-2) mb-2">
-                          {h.comentario || "Sem comentário"}
-                        </p>
-                        <div className="flex items-center gap-3 text-[10px] text-(--color-monochromatic-3)">
-                          <span>
-                            <i className="bi bi-tag mr-1"></i>
-                            {h.manifestacao}
-                          </span>
-                          <span>
-                            <i className="bi bi-folder mr-1"></i>
-                            {h.grupo_manifestacao}
-                          </span>
-                          {h.tipo_manifestacao !== "—" && (
-                            <span>
-                              <i className="bi bi-check2-circle mr-1"></i>
-                              {h.tipo_manifestacao}
-                            </span>
-                          )}
-                        </div>
-                        <p className="text-[10px] text-(--color-monochromatic-3) mt-2">
-                          {new Date(h.data_hora_atendimento).toLocaleDateString(
-                            "pt-BR",
-                          )}{" "}
-                          às{" "}
-                          {new Date(h.data_hora_atendimento).toLocaleTimeString(
-                            "pt-BR",
-                            { hour: "2-digit", minute: "2-digit" },
-                          )}
-                        </p>
-                      </div>
+                  {/* Detalhes */}
+                  <div className="bg-(--color-monochromatic-4)/5 rounded-lg p-4 space-y-3">
+                    <div>
+                      <span className="text-[10px] font-bold uppercase text-(--color-monochromatic-3) block">
+                        Técnico Responsável
+                      </span>
+                      <span className="text-xs text-(--color-monochromatic-1)">
+                        {registroSelecionado.login_tecnico}
+                      </span>
                     </div>
-                  ))}
 
-                  {/* Separador */}
-                  {!registroFinalizado && (
+                    <div>
+                      <span className="text-[10px] font-bold uppercase text-(--color-monochromatic-3) block">
+                        Manifestação
+                      </span>
+                      <span className="text-xs text-(--color-monochromatic-1)">
+                        {registroSelecionado.manifestacao}
+                      </span>
+                    </div>
+
+                    <div>
+                      <span className="text-[10px] font-bold uppercase text-(--color-monochromatic-3) block">
+                        Grupo
+                      </span>
+                      <span className="text-xs text-(--color-monochromatic-1)">
+                        {registroSelecionado.grupo_manifestacao}
+                      </span>
+                    </div>
+
+                    {registroSelecionado.tipo_manifestacao !== "—" && (
+                      <div>
+                        <span className="text-[10px] font-bold uppercase text-(--color-monochromatic-3) block">
+                          Tipo
+                        </span>
+                        <span className="text-xs text-(--color-monochromatic-1)">
+                          {registroSelecionado.tipo_manifestacao}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* ✅ NOVO: Timeline de Comentários */}
+                  <div>
+                    <span className="text-[10px] font-bold uppercase text-(--color-monochromatic-3) block mb-2">
+                      <i className="bi bi-chat-left-text mr-1"></i> Comentários
+                    </span>
+
+                    {/* Comentário original do registro */}
+                    <div className="bg-(--color-monochromatic-4)/10 rounded-lg p-3 mb-3 border-l-2 border-(--color-monochromatic-3)">
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-[10px] font-bold text-(--color-monochromatic-1)">
+                          {registroSelecionado.login_tecnico}
+                        </span>
+                        <span className="text-[10px] text-(--color-monochromatic-3)">
+                          {new Date(
+                            registroSelecionado.data_hora_atendimento,
+                          ).toLocaleDateString("pt-BR")}{" "}
+                          às{" "}
+                          {new Date(
+                            registroSelecionado.data_hora_atendimento,
+                          ).toLocaleTimeString("pt-BR", {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}
+                        </span>
+                      </div>
+                      <p className="text-xs text-(--color-monochromatic-2)">
+                        {registroSelecionado.comentario || "Sem comentário"}
+                      </p>
+                    </div>
+
+                    {/* Comentários adicionais */}
+                    {comentarios.length > 0 && (
+                      <div className="space-y-2">
+                        {comentarios.map((c, i) => (
+                          <div
+                            key={i}
+                            className="bg-(--color-monochromatic-4)/5 rounded-lg p-3 border-l-2 border-(--color-monochromatic-2)"
+                          >
+                            <div className="flex items-center justify-between mb-1">
+                              <span className="text-[10px] font-bold text-(--color-monochromatic-1)">
+                                {c.login_tecnico}
+                              </span>
+                              <span
+                                className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                                  c.status === "concluido"
+                                    ? "bg-green-100 text-green-800"
+                                    : "bg-yellow-100 text-yellow-800"
+                                }`}
+                              >
+                                {c.status}
+                              </span>
+                            </div>
+                            <p className="text-xs text-(--color-monochromatic-2) mb-1">
+                              {c.comentario}
+                            </p>
+                            <p className="text-[10px] text-(--color-monochromatic-3)">
+                              {new Date(
+                                c.data_hora_comentario,
+                              ).toLocaleDateString("pt-BR")}{" "}
+                              às{" "}
+                              {new Date(
+                                c.data_hora_comentario,
+                              ).toLocaleTimeString("pt-BR", {
+                                hour: "2-digit",
+                                minute: "2-digit",
+                              })}
+                            </p>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Mensagem de bloqueio para redirecionamento */}
+                  {registroSelecionado.status === "redirecionado" && (
+                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-center">
+                      <i className="bi bi-lock-fill text-blue-500 text-2xl block mb-2"></i>
+                      <p className="text-sm font-bold text-(--color-monochromatic-1)">
+                        Registro Automático
+                      </p>
+                      <p className="text-xs text-(--color-monochromatic-3) mt-1">
+                        Este registro foi gerado automaticamente pelo sistema e
+                        não pode ser alterado.
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Mensagem de concluído */}
+                  {registroSelecionado.status === "concluido" && (
+                    <div className="bg-green-50 border border-green-200 rounded-lg p-4 text-center">
+                      <i className="bi bi-check-circle-fill text-green-500 text-2xl block mb-2"></i>
+                      <p className="text-sm font-bold text-(--color-monochromatic-1)">
+                        Chamado Finalizado
+                      </p>
+                      <p className="text-xs text-(--color-monochromatic-3) mt-1">
+                        Não é possível adicionar novos registros.
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Formulário para novo comentário (só para registros de técnico não concluídos) */}
+                  {podeComentar && (
                     <>
                       <div className="border-t border-(--color-monochromatic-4) my-4"></div>
 
-                      {/* Novo registro */}
-                      <form onSubmit={salvarNovoRegistro} className="space-y-4">
+                      <form
+                        onSubmit={salvarNovoComentario}
+                        className="space-y-4"
+                      >
                         <h3 className="text-sm font-bold text-(--color-monochromatic-1) uppercase tracking-wider">
                           <i className="bi bi-plus-circle mr-2"></i>Novo
-                          Registro
+                          Comentário
                         </h3>
 
                         <textarea
@@ -928,19 +1099,6 @@ export default function PainelAtendimentoSD() {
                         </div>
                       </form>
                     </>
-                  )}
-
-                  {/* Mensagem de finalizado */}
-                  {registroFinalizado && (
-                    <div className="bg-green-50 border border-green-200 rounded-lg p-4 text-center">
-                      <i className="bi bi-check-circle-fill text-green-500 text-2xl block mb-2"></i>
-                      <p className="text-sm font-bold text-green-800">
-                        Chamado Finalizado
-                      </p>
-                      <p className="text-xs text-green-600 mt-1">
-                        Não é possível adicionar novos registros
-                      </p>
-                    </div>
                   )}
                 </div>
               </div>

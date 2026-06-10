@@ -15,28 +15,32 @@ export default async function handler(
     return res.status(401).json({ erro: "Não autorizado" });
   }
 
+  const { id } = JSON.parse(usuarioCookie);
+
   try {
     const [rows] = await pool.query<ChamadoSD[]>(
       `SELECT 
-    o.num_chamado,
-    c.descricao AS categoria,
-    s.descricao AS setor,
-    f.nome_user,
-    f.sobrenome_user,
-    o.descricao,  -- ← ADICIONE
-    o.status_ocorrencia,
-    o.data_hora_ocorrencia
-  FROM tbl_ocorrencia o
-  JOIN tbl_categorias_ocorrencia c ON o.id_categoria = c.id_categoria
-  JOIN tbl_setores_empresa s ON o.id_setor = s.id_setor
-  JOIN tbl_funcionarios f ON o.id_user = f.id_user
-  WHERE o.status_ocorrencia IN ('Em andamento', 'Em tratamento),
-  ORDER BY o.data_hora_ocorrencia ASC`,
+        o.num_chamado,
+        c.descricao AS categoria,
+        s.descricao AS setor,
+        f.nome_user,
+        f.sobrenome_user,
+        o.descricao,
+        o.status_ocorrencia,
+        o.data_hora_ocorrencia
+      FROM tbl_ocorrencia o
+      JOIN tbl_categorias_ocorrencia c ON o.id_categoria = c.id_categoria
+      JOIN tbl_setores_empresa s ON o.id_setor = s.id_setor
+      JOIN tbl_funcionarios f ON o.id_user = f.id_user
+      WHERE o.status_ocorrencia IN ('Em andamento', 'Em tratamento')
+        AND o.id_tecnico = ?
+      ORDER BY o.data_hora_ocorrencia ASC`,
+      [id],
     );
 
     res.status(200).json(rows);
   } catch (error) {
-    console.error("Erro ao buscar chamados:", error);
-    res.status(500).json({ erro: "Erro ao buscar chamados" });
+    console.error("Erro ao buscar chamados atribuídos:", error);
+    res.status(500).json({ erro: "Erro ao buscar chamados atribuídos" });
   }
 }
