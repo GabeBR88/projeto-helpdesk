@@ -53,6 +53,7 @@ export interface BotaoEstilizadoProps {
   texto: string; // Texto de dentro do botão (ex: "Abrir chamado")
   id: string;
   onClick?: () => void;
+  disabled?: boolean;
 }
 
 export interface BotaoPrincipalProps {

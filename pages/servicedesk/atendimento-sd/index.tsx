@@ -241,7 +241,7 @@ export default function PainelAtendimentoSD() {
   const tecnicoFinalizou = ultimoRegistroTecnico?.status === "concluido";
 
   // O formulário de Registro de Atendimento só fica ativo se:
-  // - NÃO tem registro de técnico ainda (independente de ter redirecionamento)
+  // NÃO tem registro de técnico ainda (independente de ter redirecionamento)
   const formularioAtivo = !temRegistroTecnico;
 
   // ========== MODAL INDIVIDUAL ==========

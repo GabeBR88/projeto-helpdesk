@@ -73,6 +73,7 @@ export default function PerfilServiceDesk() {
   const [chamadosAtribuidos, setChamadosAtribuidos] = useState<ChamadoSD[]>([]);
   const [quantidadeRedirecionados, setQuantidadeRedirecionados] =
     useState<number>(0);
+  const [podeRedirecionar, setPodeRedirecionar] = useState(true);
 
   // Modal de overview para finalizados
   const [modalOverview, setModalOverview] = useState(false);
@@ -302,8 +303,9 @@ export default function PerfilServiceDesk() {
 
         <div
           onClick={handleLogout}
-          className="flex justify-end mt-2 mr-5 uppercase text-xs text-(--color-monochromatic-2) hover:text-(--color-monochromatic-1) underline cursor-pointer transition-colors"
+          className="flex justify-end mt-2 mr-5 uppercase text-xs text-(--color-monochromatic-2) hover:text-(--color-monochromatic-1) underline cursor-pointer transition-colors font-medium"
         >
+          <i className="bi bi-box-arrow-right mr-1"></i>
           Sair
         </div>
 
@@ -424,6 +426,7 @@ export default function PerfilServiceDesk() {
                           className="hover:bg-(--color-monochromatic-4)/20 transition-colors cursor-pointer border-b border-(--color-monochromatic-4)"
                           onClick={() => {
                             setChamadoSelecionado(chamado.num_chamado);
+                            setPodeRedirecionar(true);
                             AbrirModal({
                               numero: chamado.num_chamado,
                               descricao: chamado.categoria,
@@ -527,6 +530,10 @@ export default function PerfilServiceDesk() {
                           className="hover:bg-(--color-monochromatic-4)/20 transition-colors cursor-pointer border-b border-(--color-monochromatic-4)"
                           onClick={() => {
                             setChamadoSelecionado(chamado.num_chamado);
+                            const bloqueado =
+                              chamado.status_ocorrencia === "Em tratamento" ||
+                              chamado.status_ocorrencia === "Em andamento";
+                            setPodeRedirecionar(!bloqueado);
                             AbrirModal({
                               numero: chamado.num_chamado,
                               descricao: chamado.categoria,
@@ -798,6 +805,7 @@ export default function PerfilServiceDesk() {
                   texto="Redirecionar Chamado"
                   id="btRedirecionarChamado"
                   onClick={AbrirListaFuncionarios}
+                  disabled={!podeRedirecionar}
                 />
               </div>
               <div id="redirecionarFuncionarios" style={{ display: "none" }}>
