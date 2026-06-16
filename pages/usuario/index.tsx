@@ -1,5 +1,11 @@
 import { BotaoEstilizado, BotaoPrincipal } from "../components/button";
-import { atualizarNomeArquivo, botaoLimpar, removerArquivo } from "./script";
+import {
+  atualizarNomeArquivo,
+  botaoLimpar,
+  removerArquivo,
+  obterArquivosAcumulados,
+  limparArquivosAposEnvio,
+} from "./script";
 import FooterEstilizacao from "../components/footer";
 import TituloSite from "../components/title";
 import TopBar from "../components/topbar";
@@ -12,6 +18,7 @@ import {
   DetalhesChamado,
   MeusRegistros,
   Comentario,
+  Anexo,
 } from "@/types/interfaces";
 
 export default function PerfilUsuario() {
@@ -41,6 +48,7 @@ export default function PerfilUsuario() {
   const [comentariosChamado, setComentariosChamado] = useState<
     Record<number, Comentario[]>
   >({});
+  const [anexosChamado, setAnexosChamado] = useState<Anexo[]>([]);
 
   useEffect(() => {
     fetch("/api/setores/setores")
@@ -112,31 +120,54 @@ export default function PerfilUsuario() {
     e.preventDefault();
     setMensagem("");
 
-    const resposta = await fetch("/api/my-tickets/enviar-ocorrencia", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ setor, categoria, descricao }),
-    });
+    try {
+      // 1. Cria o chamado
+      const resposta = await fetch("/api/my-tickets/enviar-ocorrencia", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ setor, categoria, descricao }),
+      });
 
-    const dados = await resposta.json();
+      const dados = await resposta.json();
 
-    if (!resposta.ok) {
-      setMensagem(dados.erro);
-      return;
+      if (!resposta.ok) {
+        setMensagem(dados.erro);
+        return;
+      }
+
+      // 2. Se tem arquivos acumulados, faz upload
+      const arquivos = obterArquivosAcumulados();
+      if (arquivos.length > 0 && dados.id_ocorrencia) {
+        const formData = new FormData();
+        formData.append("id_ocorrencia", dados.id_ocorrencia.toString());
+
+        for (const file of arquivos) {
+          formData.append("anexos", file);
+        }
+
+        await fetch("/api/anexos/upload", {
+          method: "POST",
+          body: formData,
+        });
+      }
+
+      await carregarDados();
+      fecharFormularioLocal();
+
+      setMensagem(`${dados.num_chamado} criado com sucesso!`);
+
+      setTimeout(() => {
+        setMensagem("");
+      }, 3000);
+
+      setSetor("");
+      setCategoria("");
+      setDescricao("");
+      limparArquivosAposEnvio();
+    } catch (error) {
+      console.error("Erro:", error);
+      setMensagem("Erro ao criar chamado");
     }
-
-    await carregarDados();
-    fecharFormularioLocal();
-
-    setMensagem(`${dados.num_chamado} criado com sucesso!`);
-
-    setTimeout(() => {
-      setMensagem("");
-    }, 3000);
-
-    setSetor("");
-    setCategoria("");
-    setDescricao("");
   };
 
   const router = useRouter();
@@ -180,6 +211,19 @@ export default function PerfilUsuario() {
         }),
       );
       setComentariosChamado(comentariosMap);
+
+      // Carrega anexos do chamado
+      if (detalhes?.id_ocorrencia) {
+        fetch(`/api/anexos/listar?id_ocorrencia=${detalhes.id_ocorrencia}`)
+          .then((res) => res.json())
+          .then((data) => {
+            if (Array.isArray(data)) setAnexosChamado(data);
+            else setAnexosChamado([]);
+          })
+          .catch(() => setAnexosChamado([]));
+      } else {
+        setAnexosChamado([]);
+      }
 
       setModalConsulta(true);
     } catch (error) {
@@ -440,7 +484,7 @@ export default function PerfilUsuario() {
                           <i className="bi bi-paperclip mr-1"></i>
                           Anexar Arquivo
                           <span className="text-(--color-monochromatic-3) text-[10px] ml-2 font-normal normal-case">
-                            (opcional)
+                            (opcional - máximo 5 arquivos, 5MB cada)
                           </span>
                         </label>
 
@@ -465,17 +509,24 @@ export default function PerfilUsuario() {
                             id="btnRemoverArquivo"
                             className="text-(--color-monochromatic-3) hover:text-red-500 transition-colors hidden"
                             onClick={removerArquivo}
-                            title="Remover arquivo"
+                            title="Remover arquivos"
                           >
                             <i className="bi bi-x-circle-fill text-lg"></i>
                           </button>
                         </div>
+
+                        {/* Lista de arquivos selecionados */}
+                        <div
+                          id="listaArquivos"
+                          className="mt-3 space-y-1.5 hidden"
+                        ></div>
 
                         <input
                           type="file"
                           id="anexarArquivo"
                           className="hidden"
                           onChange={atualizarNomeArquivo}
+                          accept="image/*,.pdf"
                           multiple
                         />
                       </div>
@@ -730,6 +781,63 @@ export default function PerfilUsuario() {
                     </p>
                   </div>
                 </div>
+
+                {/* Anexos */}
+                {anexosChamado.length > 0 && (
+                  <div>
+                    <h3 className="text-xs font-bold text-(--color-monochromatic-1) uppercase tracking-wider mb-3 flex items-center gap-2">
+                      <i className="bi bi-paperclip text-(--color-monochromatic-2)"></i>
+                      Anexos ({anexosChamado.length})
+                    </h3>
+                    <div className="bg-(--color-monochromatic-4)/5 rounded-lg p-4 space-y-2">
+                      {anexosChamado.map((anexo) => (
+                        <div
+                          key={anexo.id_anexo}
+                          className="flex items-center justify-between gap-3 bg-(--color-monochromatic-4)/10 rounded-lg p-3 hover:bg-(--color-monochromatic-4)/20 transition-colors"
+                        >
+                          <div className="flex items-center gap-3 min-w-0">
+                            <div className="w-8 h-8 bg-(--color-monochromatic-1)/10 rounded-lg flex items-center justify-center shrink-0">
+                              <i
+                                className={`text-sm ${
+                                  anexo.tipo_mime.startsWith("image/")
+                                    ? "bi bi-file-image text-blue-500"
+                                    : "bi bi-file-pdf text-red-500"
+                                }`}
+                              ></i>
+                            </div>
+                            <div className="min-w-0">
+                              <p className="text-xs text-(--color-monochromatic-1) truncate font-medium">
+                                {anexo.nome_original}
+                              </p>
+                              <p className="text-[10px] text-(--color-monochromatic-3)">
+                                {(anexo.tamanho_bytes / 1024).toFixed(1)} KB
+                              </p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2 shrink-0">
+                            <a
+                              href={anexo.caminho}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-(--color-monochromatic-2) hover:text-blue-500 transition-colors"
+                              title="Visualizar"
+                            >
+                              <i className="bi bi-eye text-lg"></i>
+                            </a>
+                            <a
+                              href={anexo.caminho}
+                              download={anexo.nome_original}
+                              className="text-(--color-monochromatic-2) hover:text-(--color-monochromatic-1) transition-colors"
+                              title="Baixar"
+                            >
+                              <i className="bi bi-download text-lg"></i>
+                            </a>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
                 {/* Timeline de atendimento */}
                 <div>

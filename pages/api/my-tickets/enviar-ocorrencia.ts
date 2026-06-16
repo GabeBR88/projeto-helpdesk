@@ -1,6 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import pool from "@/lib/db";
-import { RowDataPacket } from "mysql2";
+import { RowDataPacket, ResultSetHeader } from "mysql2";
 
 export default async function handler(
   req: NextApiRequest,
@@ -58,17 +58,20 @@ export default async function handler(
     const prazo = new Date();
     prazo.setHours(prazo.getHours() + 24);
 
-    // Salva no banco
-    await pool.query(
+    // Salva no banco e pega o ID gerado
+    const [result] = await pool.query<ResultSetHeader>(
       `INSERT INTO tbl_ocorrencia 
-   (num_chamado, id_user, id_setor, id_categoria, descricao, data_hora_ocorrencia, prazo_final, status_ocorrencia) 
-   VALUES (?, ?, ?, ?, ?, NOW(), ?, 'Pendente')`,
+       (num_chamado, id_user, id_setor, id_categoria, descricao, data_hora_ocorrencia, prazo_final, status_ocorrencia) 
+       VALUES (?, ?, ?, ?, ?, NOW(), ?, 'Pendente')`,
       [num_chamado, id, id_setor, id_categoria, descricao || null, prazo],
     );
 
+    const id_ocorrencia = result.insertId;
+
     res.status(201).json({
       mensagem: "Chamado criado com sucesso!",
-      num_chamado,
+      num_chamado: num_chamado,
+      id_ocorrencia: id_ocorrencia,
     });
   } catch (error) {
     console.error("Erro ao criar chamado:", error);

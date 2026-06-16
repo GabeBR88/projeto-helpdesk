@@ -182,3 +182,15 @@ export interface Comentario {
   status: string;
   data_hora_comentario: string;
 }
+
+// Interface para os anexos dos chamados
+export interface Anexo {
+  id_anexo: number;
+  id_ocorrencia: number;
+  nome_original: string;
+  nome_salvo: string;
+  caminho: string;
+  tipo_mime: string;
+  tamanho_bytes: number;
+  data_upload: string;
+}
