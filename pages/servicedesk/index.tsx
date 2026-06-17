@@ -17,6 +17,7 @@ import {
   DetalhesChamado,
   MeusRegistros,
   SdSetor,
+  Anexo,
 } from "@/types/interfaces";
 
 function getStatusCor(status: string): string {
@@ -86,6 +87,7 @@ export default function PerfilServiceDesk() {
   const [comentariosOverview, setComentariosOverview] = useState<
     Record<number, Comentario[]>
   >({});
+  const [anexosOverview, setAnexosOverview] = useState<Anexo[]>([]);
 
   useEffect(() => {
     fetch("/api/sd-setor/sd-setor")
@@ -95,6 +97,21 @@ export default function PerfilServiceDesk() {
         else setServiceDesk([]);
       })
       .catch(() => setServiceDesk([]));
+  }, []);
+
+  // Escuta evento disparado pelo script externo quando anexos são carregados
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const ev = e as CustomEvent;
+      const anexos = ev?.detail?.anexos;
+      console.log("📎 sdAnexosLoaded recebido:", anexos?.length, "anexos");
+      if (Array.isArray(anexos)) setAnexosOverview(anexos);
+      else setAnexosOverview([]);
+    };
+
+    window.addEventListener("sdAnexosLoaded", handler as EventListener);
+    return () =>
+      window.removeEventListener("sdAnexosLoaded", handler as EventListener);
   }, []);
 
   useEffect(() => {
@@ -236,6 +253,19 @@ export default function PerfilServiceDesk() {
         }),
       );
       setComentariosOverview(comentariosMap);
+
+      // ✅ Carrega anexos do chamado
+      if (detalhes?.id_ocorrencia) {
+        fetch(`/api/anexos/listar?id_ocorrencia=${detalhes.id_ocorrencia}`)
+          .then((res) => res.json())
+          .then((data) => {
+            if (Array.isArray(data)) setAnexosOverview(data);
+            else setAnexosOverview([]);
+          })
+          .catch(() => setAnexosOverview([]));
+      } else {
+        setAnexosOverview([]);
+      }
 
       setModalOverview(true);
     } catch (error) {
@@ -770,15 +800,62 @@ export default function PerfilServiceDesk() {
                   -{" "}
                 </span>
               </div>
-              <div className="mb-4">
-                <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-(--color-monochromatic-1)">
-                  Anexos:
-                </span>
-                <span className="text-(--color-monochromatic-2) text-xs sm:text-sm underline cursor-pointer hover:text-(--color-monochromatic-1)">
-                  {" "}
-                  nota.pdf
-                </span>
-              </div>
+              {/* Anexos */}
+              {anexosOverview.length > 0 && (
+                <div>
+                  <h3 className="text-sm font-bold text-(--color-monochromatic-1) uppercase tracking-wider mb-3 flex items-center gap-2">
+                    <i className="bi bi-paperclip text-(--color-monochromatic-2)"></i>
+                    Anexos ({anexosOverview.length})
+                  </h3>
+                  <div className="bg-(--color-monochromatic-4)/5 rounded-lg p-4 space-y-2 mb-4">
+                    {anexosOverview.map((anexo) => (
+                      <div
+                        key={anexo.id_anexo}
+                        className="flex items-center justify-between gap-3 bg-(--color-monochromatic-4)/10 rounded-lg p-3 hover:bg-(--color-monochromatic-4)/20 transition-colors"
+                      >
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className="w-8 h-8 bg-(--color-monochromatic-1)/10 rounded-lg flex items-center justify-center shrink-0">
+                            <i
+                              className={`text-sm ${
+                                anexo.tipo_mime.startsWith("image/")
+                                  ? "bi bi-file-image text-blue-500"
+                                  : "bi bi-file-pdf text-red-500"
+                              }`}
+                            ></i>
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-xs text-(--color-monochromatic-1) truncate font-medium">
+                              {anexo.nome_original}
+                            </p>
+                            <p className="text-[10px] text-(--color-monochromatic-3)">
+                              {(anexo.tamanho_bytes / 1024).toFixed(1)} KB
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2 shrink-0">
+                          <a
+                            href={anexo.caminho}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-(--color-monochromatic-2) hover:text-blue-500 transition-colors"
+                            title="Visualizar"
+                          >
+                            <i className="bi bi-eye text-lg"></i>
+                          </a>
+                          <a
+                            href={anexo.caminho}
+                            download={anexo.nome_original}
+                            className="text-(--color-monochromatic-2) hover:text-(--color-monochromatic-1) transition-colors"
+                            title="Baixar"
+                          >
+                            <i className="bi bi-download text-lg"></i>
+                          </a>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
               <div className="mb-4 sm:mb-6">
                 <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-(--color-monochromatic-1) block mb-1">
                   Comentário:
@@ -954,6 +1031,62 @@ export default function PerfilServiceDesk() {
                         {dadosOverview?.descricao || "Sem descrição"}
                       </p>
                     </div>
+                    {/* Anexos */}
+                    {anexosOverview.length > 0 && (
+                      <div className="col-span-2 sm:col-span-3 mt-2">
+                        <span className="text-[10px] font-bold uppercase text-(--color-monochromatic-3) block mb-2">
+                          <i className="bi bi-paperclip mr-1"></i>
+                          Anexos ({anexosOverview.length})
+                        </span>
+                        <div className="space-y-2">
+                          {anexosOverview.map((anexo) => (
+                            <div
+                              key={anexo.id_anexo}
+                              className="flex items-center justify-between gap-3 bg-(--color-monochromatic-4)/10 rounded-lg p-2.5 hover:bg-(--color-monochromatic-4)/20 transition-colors group"
+                            >
+                              <div className="flex items-center gap-2.5 min-w-0">
+                                <div className="w-7 h-7 bg-white rounded-md flex items-center justify-center shrink-0 shadow-sm">
+                                  <i
+                                    className={`text-xs ${
+                                      anexo.tipo_mime.startsWith("image/")
+                                        ? "bi bi-file-image text-blue-500"
+                                        : "bi bi-file-pdf text-red-500"
+                                    }`}
+                                  ></i>
+                                </div>
+                                <div className="min-w-0">
+                                  <p className="text-xs text-(--color-monochromatic-1) truncate font-medium">
+                                    {anexo.nome_original}
+                                  </p>
+                                  <p className="text-[10px] text-(--color-monochromatic-3)">
+                                    {(anexo.tamanho_bytes / 1024).toFixed(1)} KB
+                                  </p>
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-1.5 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <a
+                                  href={anexo.caminho}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="bg-(--color-monochromatic-1) text-(--color-monochromatic-5) w-7 h-7 rounded-lg flex items-center justify-center hover:bg-(--color-monochromatic-2) transition-colors"
+                                  title="Visualizar"
+                                >
+                                  <i className="bi bi-eye text-xs"></i>
+                                </a>
+                                <a
+                                  href={anexo.caminho}
+                                  download={anexo.nome_original}
+                                  className="bg-(--color-monochromatic-3) text-white w-7 h-7 rounded-lg flex items-center justify-center hover:bg-(--color-monochromatic-1) transition-colors"
+                                  title="Baixar"
+                                >
+                                  <i className="bi bi-download text-xs"></i>
+                                </a>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
 

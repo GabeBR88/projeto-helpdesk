@@ -11,6 +11,7 @@ import {
   StatusSD,
   MeusRegistros,
   Comentario,
+  Anexo,
 } from "@/types/interfaces";
 
 export default function PainelAtendimentoSD() {
@@ -76,12 +77,8 @@ export default function PainelAtendimentoSD() {
 
   useEffect(() => {
     fetch("/api/registro-sd/manifestacao/manifestacao")
-      .then((res) => {
-        return res.json();
-      })
-      .then((data) => {
-        setManifestacao(data);
-      })
+      .then((res) => res.json())
+      .then((data) => setManifestacao(data))
       .catch((err) => console.error("Erro manifestacao:", err));
   }, []);
 
@@ -93,21 +90,12 @@ export default function PainelAtendimentoSD() {
 
   useEffect(() => {
     fetch("/api/registro-sd/grupo-manifestacao/grupo-manifestacao")
-      .then((res) => {
-        return res.json();
-      })
+      .then((res) => res.json())
       .then((data) => {
-        if (Array.isArray(data)) {
-          setGrupoManifestacao(data);
-        } else {
-          console.error("API não retornou um array: ", data);
-          setGrupoManifestacao([]);
-        }
+        if (Array.isArray(data)) setGrupoManifestacao(data);
+        else setGrupoManifestacao([]);
       })
-      .catch((err) => {
-        console.error("Erro grupo manifestação: ", err);
-        setGrupoManifestacao([]);
-      });
+      .catch(() => setGrupoManifestacao([]));
   }, []);
 
   // Tipo de Manifestação
@@ -123,11 +111,8 @@ export default function PainelAtendimentoSD() {
       )
         .then((res) => res.json())
         .then((data) => {
-          if (Array.isArray(data)) {
-            setTipoManifestacao(data);
-          } else {
-            setTipoManifestacao([]);
-          }
+          if (Array.isArray(data)) setTipoManifestacao(data);
+          else setTipoManifestacao([]);
           setTipoSelecionado("");
         })
         .catch(() => {
@@ -135,9 +120,10 @@ export default function PainelAtendimentoSD() {
           setTipoSelecionado("");
         });
     } else {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setTipoManifestacao([]);
-      setTipoSelecionado("");
+      setTimeout(() => {
+        setTipoManifestacao([]);
+        setTipoSelecionado("");
+      }, 0);
     }
   }, [grupoSelecionado]);
 
@@ -149,18 +135,25 @@ export default function PainelAtendimentoSD() {
     fetch("/api/registro-sd/status-sd/status-sd")
       .then((res) => res.json())
       .then((data) => {
-        if (Array.isArray(data)) {
-          setStatus(data);
-        } else {
-          console.error("API não retornou um array: ", data);
-          setStatus([]);
-        }
+        if (Array.isArray(data)) setStatus(data);
+        else setStatus([]);
       })
-      .catch((err) => {
-        console.error("Erro status: ", err);
-        setStatus([]);
-      });
+      .catch(() => setStatus([]));
   }, []);
+
+  const [anexosChamado, setAnexosChamado] = useState<Anexo[]>([]);
+
+  useEffect(() => {
+    if (dadosChamado?.id_ocorrencia) {
+      fetch(`/api/anexos/listar?id_ocorrencia=${dadosChamado.id_ocorrencia}`)
+        .then((res) => res.json())
+        .then((data) => {
+          if (Array.isArray(data)) setAnexosChamado(data);
+          else setAnexosChamado([]);
+        })
+        .catch(() => setAnexosChamado([]));
+    }
+  }, [dadosChamado?.id_ocorrencia]);
 
   const [comentario, setComentario] = useState("");
 
@@ -198,14 +191,12 @@ export default function PainelAtendimentoSD() {
     alert(dados.mensagem);
     handleCancelar();
 
-    // Recarrega histórico
     fetch(`/api/desk-tickets/meus-registros?chamado=${numeroChamado}`)
       .then((res) => res.json())
       .then((data) => {
         if (Array.isArray(data)) setHistorico(data);
       });
 
-    // Recarrega dados do chamado
     fetch(`/api/desk-tickets/detalhes-chamado?chamado=${numeroChamado}`)
       .then((res) => res.json())
       .then((data) => {
@@ -230,18 +221,9 @@ export default function PainelAtendimentoSD() {
   const registrosTecnico = historico.filter(
     (h) => h.status !== "redirecionado",
   );
-
-  // Tem registro feito por técnico (que não seja redirecionamento)?
   const temRegistroTecnico = registrosTecnico.length > 0;
-
-  // Último registro do técnico (para verificar se está concluído)
   const ultimoRegistroTecnico = registrosTecnico[0];
-
-  // Se tem registro do técnico com status "concluido", bloqueia tudo
   const tecnicoFinalizou = ultimoRegistroTecnico?.status === "concluido";
-
-  // O formulário de Registro de Atendimento só fica ativo se:
-  // NÃO tem registro de técnico ainda (independente de ter redirecionamento)
   const formularioAtivo = !temRegistroTecnico;
 
   // ========== MODAL INDIVIDUAL ==========
@@ -258,7 +240,6 @@ export default function PainelAtendimentoSD() {
     setNovoStatus("");
     setModalRegistro(true);
 
-    // Carrega os comentários desse atendimento
     fetch(
       `/api/desk-tickets/comentarios?id_atendimento=${registro.id_atendimento}`,
     )
@@ -271,7 +252,6 @@ export default function PainelAtendimentoSD() {
 
   const salvarNovoComentario = async (e: React.FormEvent) => {
     e.preventDefault();
-
     if (!registroSelecionado) return;
 
     const resposta = await fetch("/api/desk-tickets/salvar-comentario", {
@@ -285,7 +265,6 @@ export default function PainelAtendimentoSD() {
     });
 
     const dados = await resposta.json();
-
     if (!resposta.ok) {
       alert(dados.erro);
       return;
@@ -295,7 +274,6 @@ export default function PainelAtendimentoSD() {
     setNovoComentario("");
     setNovoStatus("");
 
-    // Recarrega os comentários do modal
     fetch(
       `/api/desk-tickets/comentarios?id_atendimento=${registroSelecionado.id_atendimento}`,
     )
@@ -304,14 +282,12 @@ export default function PainelAtendimentoSD() {
         if (Array.isArray(data)) setComentarios(data);
       });
 
-    // Recarrega dados do chamado (para atualizar o status)
     fetch(`/api/desk-tickets/detalhes-chamado?chamado=${numeroChamado}`)
       .then((res) => res.json())
       .then((data) => {
         setDadosChamado(data);
       });
 
-    // Recarrega histórico também (pois o status pode ter mudado)
     fetch(`/api/desk-tickets/meus-registros?chamado=${numeroChamado}`)
       .then((res) => res.json())
       .then((data) => {
@@ -319,7 +295,6 @@ export default function PainelAtendimentoSD() {
       });
   };
 
-  // Verifica se o registro selecionado no modal pode receber novos comentários
   const podeComentar =
     registroSelecionado &&
     registroSelecionado.status !== "redirecionado" &&
@@ -492,18 +467,59 @@ export default function PainelAtendimentoSD() {
                     </p>
                   </div>
 
-                  <div className="mb-4 sm:mb-5">
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-(--color-monochromatic-3) block mb-2">
-                      <i className="bi bi-paperclip mr-1"></i> Anexos
-                    </span>
-                    <div className="flex items-center gap-2 bg-(--color-monochromatic-4)/10 border border-(--color-monochromatic-4) rounded-lg px-3 py-2 w-fit cursor-pointer hover:bg-(--color-monochromatic-4)/20 transition-colors">
-                      <i className="bi bi-file-pdf text-red-500"></i>
-                      <span className="text-xs sm:text-sm text-(--color-monochromatic-1) underline">
-                        nota.pdf
+                  {anexosChamado.length > 0 && (
+                    <div className="mb-4 sm:mb-5">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-(--color-monochromatic-3) block mb-2">
+                        <i className="bi bi-paperclip mr-1"></i> Anexos (
+                        {anexosChamado.length})
                       </span>
-                      <i className="bi bi-download text-(--color-monochromatic-3) text-xs"></i>
+                      <div className="space-y-2">
+                        {anexosChamado.map((anexo) => (
+                          <div
+                            key={anexo.id_anexo}
+                            className="flex items-center justify-between gap-3 bg-(--color-monochromatic-4)/10 border border-(--color-monochromatic-4) rounded-lg px-3 py-2.5 hover:bg-(--color-monochromatic-4)/20 transition-colors group"
+                          >
+                            <div className="flex items-center gap-2.5 min-w-0">
+                              <div className="w-7 h-7 bg-white rounded-md flex items-center justify-center shrink-0 shadow-sm">
+                                <i
+                                  className={`text-xs ${
+                                    anexo.tipo_mime.startsWith("image/")
+                                      ? "bi bi-file-image text-blue-500"
+                                      : "bi bi-file-pdf text-red-500"
+                                  }`}
+                                ></i>
+                              </div>
+                              <span className="text-xs sm:text-sm text-(--color-monochromatic-1) truncate font-medium">
+                                {anexo.nome_original}
+                              </span>
+                              <span className="text-[10px] text-(--color-monochromatic-3) hidden sm:inline">
+                                ({(anexo.tamanho_bytes / 1024).toFixed(1)} KB)
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-1.5 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <a
+                                href={anexo.caminho}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="bg-(--color-monochromatic-1) text-(--color-monochromatic-5) w-7 h-7 rounded-lg flex items-center justify-center hover:bg-(--color-monochromatic-2) transition-colors"
+                                title="Visualizar"
+                              >
+                                <i className="bi bi-eye text-xs"></i>
+                              </a>
+                              <a
+                                href={anexo.caminho}
+                                download={anexo.nome_original}
+                                className="bg-(--color-monochromatic-3) text-white w-7 h-7 rounded-lg flex items-center justify-center hover:bg-(--color-monochromatic-1) transition-colors"
+                                title="Baixar"
+                              >
+                                <i className="bi bi-download text-xs"></i>
+                              </a>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
                     </div>
-                  </div>
+                  )}
 
                   <div className="flex justify-start mt-4 sm:mt-6">
                     <button
@@ -826,7 +842,6 @@ export default function PainelAtendimentoSD() {
           </div>
 
           {/* Modal Individual do Registro */}
-          {/* Modal Individual do Registro */}
           {modalRegistro && registroSelecionado && (
             <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
               {/* Overlay */}
@@ -949,7 +964,62 @@ export default function PainelAtendimentoSD() {
                     )}
                   </div>
 
-                  {/* ✅ NOVO: Timeline de Comentários */}
+                  {/* Anexos do Chamado */}
+                  {anexosChamado.length > 0 && (
+                    <div>
+                      <span className="text-[10px] font-bold uppercase text-(--color-monochromatic-3) block mb-2">
+                        <i className="bi bi-paperclip mr-1"></i> Anexos do
+                        Chamado ({anexosChamado.length})
+                      </span>
+                      <div className="space-y-2">
+                        {anexosChamado.map((anexo) => (
+                          <div
+                            key={anexo.id_anexo}
+                            className="flex items-center justify-between gap-3 bg-(--color-monochromatic-4)/10 border border-(--color-monochromatic-4) rounded-lg px-3 py-2.5 hover:bg-(--color-monochromatic-4)/20 transition-colors group"
+                          >
+                            <div className="flex items-center gap-2.5 min-w-0">
+                              <div className="w-7 h-7 bg-white rounded-md flex items-center justify-center shrink-0 shadow-sm">
+                                <i
+                                  className={`text-xs ${
+                                    anexo.tipo_mime.startsWith("image/")
+                                      ? "bi bi-file-image text-blue-500"
+                                      : "bi bi-file-pdf text-red-500"
+                                  }`}
+                                ></i>
+                              </div>
+                              <span className="text-xs text-(--color-monochromatic-1) truncate font-medium">
+                                {anexo.nome_original}
+                              </span>
+                              <span className="text-[10px] text-(--color-monochromatic-3) hidden sm:inline">
+                                ({(anexo.tamanho_bytes / 1024).toFixed(1)} KB)
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-1.5 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <a
+                                href={anexo.caminho}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="bg-(--color-monochromatic-1) text-(--color-monochromatic-5) w-7 h-7 rounded-lg flex items-center justify-center hover:bg-(--color-monochromatic-2) transition-colors"
+                                title="Visualizar"
+                              >
+                                <i className="bi bi-eye text-xs"></i>
+                              </a>
+                              <a
+                                href={anexo.caminho}
+                                download={anexo.nome_original}
+                                className="bg-(--color-monochromatic-3) text-white w-7 h-7 rounded-lg flex items-center justify-center hover:bg-(--color-monochromatic-1) transition-colors"
+                                title="Baixar"
+                              >
+                                <i className="bi bi-download text-xs"></i>
+                              </a>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Timeline de Comentários */}
                   <div>
                     <span className="text-[10px] font-bold uppercase text-(--color-monochromatic-3) block mb-2">
                       <i className="bi bi-chat-left-text mr-1"></i> Comentários

@@ -30,6 +30,40 @@ export function AbrirModal(chamado: {
   if (overlay) overlay.style.display = "block";
   if (modalPopUp) modalPopUp.style.display = "block";
 
+  // Dispara evento com array vazio primeiro (limpa anexos anteriores)
+  window.dispatchEvent(
+    new CustomEvent("sdAnexosLoaded", {
+      detail: { anexos: [] },
+    }),
+  );
+
+  // Carrega anexos do chamado
+  const numLimpo = chamado.numero.replace("#", "");
+  fetch(`/api/desk-tickets/detalhes-chamado?chamado=${numLimpo}`)
+    .then((res) => res.json())
+    .then((detalhes) => {
+      const idOcorrencia = detalhes?.id_ocorrencia;
+      if (idOcorrencia) {
+        return fetch(`/api/anexos/listar?id_ocorrencia=${idOcorrencia}`);
+      }
+      return Promise.resolve(null);
+    })
+    .then((res) => (res ? res.json() : null))
+    .then((anexos) => {
+      window.dispatchEvent(
+        new CustomEvent("sdAnexosLoaded", {
+          detail: { anexos: Array.isArray(anexos) ? anexos : [] },
+        }),
+      );
+    })
+    .catch(() => {
+      window.dispatchEvent(
+        new CustomEvent("sdAnexosLoaded", {
+          detail: { anexos: [] },
+        }),
+      );
+    });
+
   setTimeout(() => {
     const botoesModal = document.getElementById(
       "botoesModal",
