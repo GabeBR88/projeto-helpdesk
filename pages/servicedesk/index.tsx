@@ -254,7 +254,7 @@ export default function PerfilServiceDesk() {
       );
       setComentariosOverview(comentariosMap);
 
-      // ✅ Carrega anexos do chamado
+      // Carrega anexos do chamado
       if (detalhes?.id_ocorrencia) {
         fetch(`/api/anexos/listar?id_ocorrencia=${detalhes.id_ocorrencia}`)
           .then((res) => res.json())

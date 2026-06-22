@@ -5,10 +5,11 @@ export function proxy(request: NextRequest) {
   const usuario = request.cookies.get("usuario")?.value;
   const pathname = request.nextUrl.pathname;
 
+  // Rotas que exigem autenticação
   const rotasProtegidas = [
     "/administrador",
     "/servicedesk",
-    "/servicedesk/atendimento-sd", // ← Ajustado
+    "/servicedesk/atendimento-sd",
     "/usuario",
   ];
 
@@ -23,30 +24,28 @@ export function proxy(request: NextRequest) {
   const dados = JSON.parse(usuario);
   const perfil = dados.perfil;
 
-  if (perfil === "administrador" && pathname !== "/administrador") {
-    return NextResponse.redirect(new URL("/", request.url));
-  }
-
-  // SERVICEDESK → /servicedesk e /servicedesk/atendimento-sd
-  if (perfil === "servicedesk") {
-    if (
-      pathname !== "/servicedesk" &&
-      pathname !== "/servicedesk/atendimento-sd"
-    ) {
-      return NextResponse.redirect(new URL("/", request.url));
-    }
+  // ADMIN → pode acessar /administrador
+  if (perfil === "administrador" && pathname === "/administrador") {
     return NextResponse.next();
   }
 
-  if (
-    perfil !== "administrador" &&
-    perfil !== "servicedesk" &&
-    pathname !== "/usuario"
-  ) {
-    return NextResponse.redirect(new URL("/", request.url));
+  // Admin tentando acessar outras rotas → redireciona
+  if (perfil === "administrador") {
+    return NextResponse.redirect(new URL("/administrador", request.url));
   }
 
-  return NextResponse.next();
+  // SERVICEDESK → pode acessar /servicedesk e sub-rotas
+  if (perfil === "servicedesk" && pathname.startsWith("/servicedesk")) {
+    return NextResponse.next();
+  }
+
+  // USUARIO → pode acessar /usuario
+  if (pathname === "/usuario") {
+    return NextResponse.next();
+  }
+
+  // Qualquer outra tentativa → login
+  return NextResponse.redirect(new URL("/", request.url));
 }
 
 export const config = {
