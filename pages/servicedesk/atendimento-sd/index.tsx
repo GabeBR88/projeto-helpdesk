@@ -88,15 +88,24 @@ export default function PainelAtendimentoSD() {
   >([]);
   const [grupoSelecionado, setGrupoSelecionado] = useState("");
 
+  // Grupo de Manifestação
   useEffect(() => {
-    fetch("/api/registro-sd/grupo-manifestacao/grupo-manifestacao")
+    const url = manifestacaoSelecionada
+      ? `/api/registro-sd/grupo-manifestacao/grupo-manifestacao?manifestacao=${manifestacaoSelecionada}`
+      : "/api/registro-sd/grupo-manifestacao/grupo-manifestacao";
+
+    fetch(url)
       .then((res) => res.json())
       .then((data) => {
         if (Array.isArray(data)) setGrupoManifestacao(data);
         else setGrupoManifestacao([]);
+        setGrupoSelecionado("");
       })
-      .catch(() => setGrupoManifestacao([]));
-  }, []);
+      .catch(() => {
+        setGrupoManifestacao([]);
+        setGrupoSelecionado("");
+      });
+  }, [manifestacaoSelecionada]);
 
   // Tipo de Manifestação
   const [tipoManifestacao, setTipoManifestacao] = useState<TipoManifestacao[]>(

@@ -11,11 +11,10 @@ export default async function handler(
 
   try {
     const [rows] = await pool.query<RowDataPacket[]>(
-      "SELECT id_manifestacao, codigo, descricao FROM tbl_manifestacao WHERE ativo = 1 AND codigo != 'redirecionado' ORDER BY descricao",
+      "SELECT id_manifestacao, codigo, descricao, ativo FROM tbl_manifestacao ORDER BY descricao ASC",
     );
     res.status(200).json(rows);
-  } catch (error) {
-    console.error("Erro ao buscar manifestacao: ", error);
-    res.status(500).json({ erro: "Erro ao buscar manifestacao" });
+  } catch {
+    res.status(500).json({ erro: "Erro ao listar manifestações" });
   }
 }

@@ -194,3 +194,39 @@ export interface Anexo {
   tamanho_bytes: number;
   data_upload: string;
 }
+
+// interfaces do perfil administrador
+export interface DadosAdmin {
+  nome_user: string;
+  sobrenome_user: string;
+  perfil: string;
+}
+
+export interface StatusItem {
+  id_status: number;
+  codigo: string;
+  descricao: string;
+  ativo: number;
+}
+
+export interface ManifestacaoItem {
+  id_manifestacao: number;
+  codigo: string;
+  descricao: string;
+  ativo: number;
+}
+
+export interface GrupoItem {
+  id_grupo: number;
+  id_manifestacao: number; // ← ADICIONAR
+  codigo: string;
+  descricao: string;
+  ativo: number;
+}
+export interface TipoItem {
+  id_tipo: number;
+  id_grupo: number;
+  codigo: string;
+  descricao: string;
+  ativo: number;
+}
