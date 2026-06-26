@@ -218,7 +218,7 @@ export interface ManifestacaoItem {
 
 export interface GrupoItem {
   id_grupo: number;
-  id_manifestacao: number; // ← ADICIONAR
+  id_manifestacao: number;
   codigo: string;
   descricao: string;
   ativo: number;
@@ -226,6 +226,13 @@ export interface GrupoItem {
 export interface TipoItem {
   id_tipo: number;
   id_grupo: number;
+  codigo: string;
+  descricao: string;
+  ativo: number;
+}
+
+export interface SetorItem {
+  id_setor: number;
   codigo: string;
   descricao: string;
   ativo: number;
