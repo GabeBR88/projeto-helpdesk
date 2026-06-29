@@ -287,21 +287,7 @@ export default function GerenciarUsuarios() {
                             />
                           </div>
                         </td>
-                        <td className="px-2 py-2 hidden sm:table-cell">
-                          <div className="space-y-1.5">
-                            <input
-                              value={editUsername}
-                              onChange={(e) => setEditUsername(e.target.value)}
-                              className="w-full px-2 py-1 text-xs border rounded outline-none"
-                            />
-                            <input
-                              value={editEmail}
-                              onChange={(e) => setEditEmail(e.target.value)}
-                              placeholder="Email"
-                              className="w-full px-2 py-1 text-xs border rounded outline-none"
-                            />
-                          </div>
-                        </td>
+
                         <td className="px-2 py-2 hidden sm:table-cell">
                           <div className="space-y-1.5">
                             <input
