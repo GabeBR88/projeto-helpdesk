@@ -237,3 +237,17 @@ export interface SetorItem {
   descricao: string;
   ativo: number;
 }
+
+export interface UsuarioItem {
+  id_user: number;
+  nome_user: string;
+  sobrenome_user: string;
+  genero: string;
+  email_user: string;
+  telefone: string;
+  perfil: string;
+  username: string;
+  ativo: number;
+  data_cadastro: string;
+  ultimo_acesso: string | null;
+}
