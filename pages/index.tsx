@@ -29,6 +29,20 @@ export default function PaginaLogin() {
       return;
     }
 
+    console.log("🔍 Dados do login:", dados);
+
+    if (dados.usuario.primeiro_acesso) {
+      // Salva cookie com a flag primeiro_acesso
+      document.cookie = `usuario=${JSON.stringify({
+        id: dados.usuario.id,
+        usuario: dados.usuario.usuario,
+        perfil: dados.usuario.perfil,
+        primeiro_acesso: true,
+      })}; path=/`;
+      router.push(`/criar-senha?id=${dados.usuario.id}`);
+      return;
+    }
+
     // Salva o cookie
     document.cookie = `usuario=${JSON.stringify(dados.usuario)}; path=/`;
 

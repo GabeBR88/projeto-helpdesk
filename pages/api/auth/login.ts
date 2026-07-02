@@ -48,12 +48,17 @@ export default async function handler(
       [funcionario.id_user],
     );
 
+    // Verifica se a senha segue o padrão de reset (nome + 123)
+    const nomeLimpo = funcionario.nome_user.trim();
+    const senhaPadrao = `${nomeLimpo}123`;
+
     res.status(200).json({
       mensagem: "Login realizado com sucesso",
       usuario: {
         id: funcionario.id_user,
         usuario: funcionario.username,
         perfil: funcionario.perfil,
+        primeiro_acesso: senha === senhaPadrao,
       },
     });
   } catch {

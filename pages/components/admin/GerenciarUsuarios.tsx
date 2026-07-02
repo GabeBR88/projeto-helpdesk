@@ -28,10 +28,11 @@ export default function GerenciarUsuarios() {
 
   const [modalSenha, setModalSenha] = useState(false);
   const [resetSenhaId, setResetSenhaId] = useState<number | null>(null);
-  const [resetSenhaValor, setResetSenhaValor] = useState("");
 
   const [modalConfirmar, setModalConfirmar] = useState(false);
   const [acaoConfirmar, setAcaoConfirmar] = useState<() => void>(() => {});
+  const [modalSucesso, setModalSucesso] = useState(false);
+  const [mensagemSucesso, setMensagemSucesso] = useState("");
 
   const formatarTelefone = (valor: string): string => {
     // Remove tudo que não for número
@@ -156,18 +157,20 @@ export default function GerenciarUsuarios() {
   };
 
   const resetarSenha = () => {
-    if (!resetSenhaValor.trim()) {
-      alert("Digite a nova senha");
-      return;
-    }
+    if (!resetSenhaId) return;
+
+    const usuario = usuariosLista.find((u) => u.id_user === resetSenhaId);
+    if (!usuario) return;
+
+    const novaSenha = `${usuario.nome_user}123`;
+
+    setModalSenha(false);
+
     setAcaoConfirmar(() => () => {
       fetch("/api/admin/criar_editar_usuario/resetar_senha", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          id_user: resetSenhaId,
-          nova_senha: resetSenhaValor,
-        }),
+        body: JSON.stringify({ id_user: resetSenhaId, nova_senha: novaSenha }),
       })
         .then((r) => r.json())
         .then((d) => {
@@ -176,9 +179,11 @@ export default function GerenciarUsuarios() {
             return;
           }
           carregarUsuarios();
-          setModalSenha(false);
           setResetSenhaId(null);
-          setResetSenhaValor("");
+          setMensagemSucesso(
+            `Senha resetada com sucesso!\nNova senha: ${novaSenha}`,
+          );
+          setModalSucesso(true);
         });
     });
     setModalConfirmar(true);
@@ -416,7 +421,6 @@ export default function GerenciarUsuarios() {
                             <button
                               onClick={() => {
                                 setResetSenhaId(u.id_user);
-                                setResetSenhaValor("");
                                 setModalSenha(true);
                               }}
                               className="bg-amber-100 text-amber-700 w-7 h-7 rounded-lg flex items-center justify-center hover:bg-amber-200 transition-colors"
@@ -582,57 +586,67 @@ export default function GerenciarUsuarios() {
         </div>
       )}
 
-      {/* Modal Resetar Senha */}
+      {/* Modal de Sucesso */}
+      {modalSucesso && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div
+            className="absolute inset-0 bg-black/50"
+            onClick={() => setModalSucesso(false)}
+          ></div>
+          <div className="relative bg-(--color-monochromatic-5) rounded-2xl shadow-xl w-full max-w-sm p-6 text-center">
+            <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <i className="bi bi-check-circle text-green-600 text-xl"></i>
+            </div>
+            <h3 className="text-sm font-bold text-(--color-monochromatic-1) mb-2">
+              Senha Resetada!
+            </h3>
+            <p className="text-xs text-(--color-monochromatic-2) mb-2 whitespace-pre-line">
+              {mensagemSucesso}
+            </p>
+            <button
+              onClick={() => setModalSucesso(false)}
+              className="bg-(--color-monochromatic-1) text-(--color-monochromatic-5) px-4 py-2 text-xs font-bold uppercase tracking-wider rounded-lg hover:bg-(--color-monochromatic-2) transition-colors"
+            >
+              <i className="bi bi-check-lg mr-1"></i>OK
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Confirmar Reset de Senha */}
       {modalSenha && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div
             className="absolute inset-0 bg-black/50"
             onClick={() => setModalSenha(false)}
           ></div>
-          <div className="relative bg-(--color-monochromatic-5) rounded-2xl shadow-xl w-full max-w-sm">
-            <div className="bg-(--color-monochromatic-1) px-5 py-3 rounded-t-2xl flex items-center justify-between">
-              <h2 className="text-(--color-monochromatic-5) text-xs font-bold uppercase tracking-wider">
-                <i className="bi bi-key mr-2"></i>Resetar Senha
-              </h2>
+          <div className="relative bg-(--color-monochromatic-5) rounded-2xl shadow-xl w-full max-w-sm p-6 text-center">
+            <div className="w-12 h-12 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <i className="bi bi-key text-amber-600 text-xl"></i>
+            </div>
+            <h3 className="text-sm font-bold text-(--color-monochromatic-1) mb-2">
+              Resetar Senha
+            </h3>
+            <p className="text-xs text-(--color-monochromatic-3) mb-5">
+              A senha será resetada para o padrão: <strong>Nome123</strong>
+            </p>
+            <div className="flex justify-center gap-3">
               <button
                 onClick={() => setModalSenha(false)}
-                className="text-white/70 hover:text-white"
+                className="px-4 py-2 text-xs font-bold text-(--color-monochromatic-2) hover:text-(--color-monochromatic-1) transition-colors"
               >
-                <i className="bi bi-x-lg"></i>
+                Cancelar
               </button>
-            </div>
-            <div className="p-5 space-y-4">
-              <div>
-                <label className="text-[10px] font-bold uppercase text-(--color-monochromatic-1) block mb-1">
-                  Nova Senha <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  value={resetSenhaValor}
-                  onChange={(e) => setResetSenhaValor(e.target.value)}
-                  placeholder="Digite a nova senha"
-                  className="w-full px-3 py-2 text-xs border-2 border-(--color-monochromatic-4) focus:border-(--color-monochromatic-1) rounded-lg outline-none transition-all"
-                />
-              </div>
-              <div className="flex justify-end gap-2 pt-2">
-                <button
-                  onClick={() => setModalSenha(false)}
-                  className="px-4 py-2 text-xs font-bold text-(--color-monochromatic-2) hover:text-(--color-monochromatic-1) transition-colors"
-                >
-                  Cancelar
-                </button>
-                <button
-                  onClick={resetarSenha}
-                  className="bg-(--color-monochromatic-1) text-(--color-monochromatic-5) px-4 py-2 text-xs font-bold uppercase tracking-wider rounded-lg hover:bg-(--color-monochromatic-2) transition-colors"
-                >
-                  <i className="bi bi-check-lg mr-1"></i>Salvar
-                </button>
-              </div>
+              <button
+                onClick={resetarSenha}
+                className="bg-(--color-monochromatic-1) text-(--color-monochromatic-5) px-4 py-2 text-xs font-bold uppercase tracking-wider rounded-lg hover:bg-(--color-monochromatic-2) transition-colors"
+              >
+                <i className="bi bi-check-lg mr-1"></i>Sim, resetar
+              </button>
             </div>
           </div>
         </div>
       )}
-
       {modalConfirmar && (
         <ModalConfirmacao
           onCancel={() => setModalConfirmar(false)}
