@@ -262,6 +262,34 @@ export default function GerenciarSetores() {
                                 className={`bi ${s.ativo === 1 ? "bi-toggle-on" : "bi-toggle-off"} text-xs`}
                               ></i>
                             </button>
+                            <button
+                              onClick={() => {
+                                setAcaoConfirmar(() => () => {
+                                  fetch("/api/admin/setores/excluir", {
+                                    method: "DELETE",
+                                    headers: {
+                                      "Content-Type": "application/json",
+                                    },
+                                    body: JSON.stringify({
+                                      id_setor: s.id_setor,
+                                    }),
+                                  })
+                                    .then((r) => r.json())
+                                    .then((d) => {
+                                      if (d.erro) {
+                                        alert(d.erro); // ✅ Mais simples
+                                        return;
+                                      }
+                                      carregarSetores();
+                                    });
+                                });
+                                setModalConfirmar(true);
+                              }}
+                              className="bg-red-100 text-red-600 w-7 h-7 rounded-lg flex items-center justify-center hover:bg-red-200 transition-colors"
+                              title="Excluir"
+                            >
+                              <i className="bi bi-trash text-xs"></i>
+                            </button>
                           </div>
                         </td>
                       </>

@@ -343,69 +343,6 @@ export default function GerenciarManifestacoes() {
       </div>
     );
 
-  const renderLinha = (
-    codigo: string,
-    descricao: string,
-    ativo: number,
-    onEditar: () => void,
-    onToggle: () => void,
-    bloqueado: boolean,
-  ) => (
-    <>
-      <td className="px-3 py-2.5 text-xs text-(--color-monochromatic-1) font-mono">
-        {codigo}
-      </td>
-      <td className="px-3 py-2.5 text-xs text-(--color-monochromatic-2)">
-        {descricao}
-      </td>
-      <td className="px-3 py-2.5 text-center">
-        <span
-          className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${ativo === 1 ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"}`}
-        >
-          {ativo === 1 ? "Ativo" : "Inativo"}
-        </span>
-      </td>
-      <td className="px-3 py-2.5">
-        <div className="flex items-center justify-center gap-1.5">
-          {bloqueado ? (
-            <span
-              className="text-(--color-monochromatic-3) w-7 h-7 rounded-lg flex items-center justify-center"
-              title="Protegido"
-            >
-              <i className="bi bi-lock-fill text-xs"></i>
-            </span>
-          ) : (
-            <button
-              onClick={onEditar}
-              className="bg-(--color-monochromatic-1) text-(--color-monochromatic-5) w-7 h-7 rounded-lg flex items-center justify-center hover:bg-(--color-monochromatic-2) transition-colors"
-              title="Editar"
-            >
-              <i className="bi bi-pencil text-xs"></i>
-            </button>
-          )}
-          {bloqueado ? (
-            <span
-              className="text-(--color-monochromatic-3) w-7 h-7 rounded-lg flex items-center justify-center"
-              title="Protegido"
-            >
-              <i className="bi bi-lock-fill text-xs"></i>
-            </span>
-          ) : (
-            <button
-              onClick={onToggle}
-              className={`w-7 h-7 rounded-lg flex items-center justify-center transition-colors ${ativo === 1 ? "bg-red-100 text-red-600 hover:bg-red-200" : "bg-green-100 text-green-600 hover:bg-green-200"}`}
-              title={ativo === 1 ? "Inativar" : "Ativar"}
-            >
-              <i
-                className={`bi ${ativo === 1 ? "bi-toggle-on" : "bi-toggle-off"} text-xs`}
-              ></i>
-            </button>
-          )}
-        </div>
-      </td>
-    </>
-  );
-
   return (
     <>
       <div className="space-y-6 animate-fadeIn">
@@ -434,6 +371,7 @@ export default function GerenciarManifestacoes() {
           ))}
         </div>
 
+        {/* ============ MANIFESTAÇÃO ============ */}
         {subAba === "manifestacao" && (
           <div className="space-y-4">
             <div className="flex justify-end">
@@ -528,19 +466,102 @@ export default function GerenciarManifestacoes() {
                             </td>
                           </>
                         ) : (
-                          renderLinha(
-                            m.codigo,
-                            m.descricao,
-                            m.ativo,
-                            () => {
-                              setEditManifestacao(m.id_manifestacao);
-                              setEditManCodigo(m.codigo);
-                              setEditManDescricao(m.descricao);
-                              setEditManAtivo(m.ativo);
-                            },
-                            () => alternarAtivoManifestacao(m),
-                            MAN_SISTEMA.includes(m.codigo),
-                          )
+                          <>
+                            <td className="px-3 py-2.5 text-xs text-(--color-monochromatic-1) font-mono">
+                              {m.codigo}
+                            </td>
+                            <td className="px-3 py-2.5 text-xs text-(--color-monochromatic-2)">
+                              {m.descricao}
+                            </td>
+                            <td className="px-3 py-2.5 text-center">
+                              <span
+                                className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${m.ativo === 1 ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"}`}
+                              >
+                                {m.ativo === 1 ? "Ativo" : "Inativo"}
+                              </span>
+                            </td>
+                            <td className="px-3 py-2.5">
+                              <div className="flex items-center justify-center gap-1.5">
+                                {MAN_SISTEMA.includes(m.codigo) ? (
+                                  <span
+                                    className="text-(--color-monochromatic-3) w-7 h-7 rounded-lg flex items-center justify-center"
+                                    title="Protegido"
+                                  >
+                                    <i className="bi bi-lock-fill text-xs"></i>
+                                  </span>
+                                ) : (
+                                  <button
+                                    onClick={() => {
+                                      setEditManifestacao(m.id_manifestacao);
+                                      setEditManCodigo(m.codigo);
+                                      setEditManDescricao(m.descricao);
+                                      setEditManAtivo(m.ativo);
+                                    }}
+                                    className="bg-(--color-monochromatic-1) text-(--color-monochromatic-5) w-7 h-7 rounded-lg flex items-center justify-center hover:bg-(--color-monochromatic-2) transition-colors"
+                                    title="Editar"
+                                  >
+                                    <i className="bi bi-pencil text-xs"></i>
+                                  </button>
+                                )}
+                                {MAN_SISTEMA.includes(m.codigo) ? (
+                                  <span
+                                    className="text-(--color-monochromatic-3) w-7 h-7 rounded-lg flex items-center justify-center"
+                                    title="Protegido"
+                                  >
+                                    <i className="bi bi-lock-fill text-xs"></i>
+                                  </span>
+                                ) : (
+                                  <button
+                                    onClick={() => alternarAtivoManifestacao(m)}
+                                    className={`w-7 h-7 rounded-lg flex items-center justify-center transition-colors ${m.ativo === 1 ? "bg-red-100 text-red-600 hover:bg-red-200" : "bg-green-100 text-green-600 hover:bg-green-200"}`}
+                                    title={
+                                      m.ativo === 1 ? "Inativar" : "Ativar"
+                                    }
+                                  >
+                                    <i
+                                      className={`bi ${m.ativo === 1 ? "bi-toggle-on" : "bi-toggle-off"} text-xs`}
+                                    ></i>
+                                  </button>
+                                )}
+                                {/* 🗑️ EXCLUIR MANIFESTAÇÃO */}
+                                {!MAN_SISTEMA.includes(m.codigo) && (
+                                  <button
+                                    onClick={() => {
+                                      setAcaoConfirmar(() => () => {
+                                        fetch(
+                                          "/api/admin/manifestacao/excluir",
+                                          {
+                                            method: "DELETE",
+                                            headers: {
+                                              "Content-Type":
+                                                "application/json",
+                                            },
+                                            body: JSON.stringify({
+                                              id_manifestacao:
+                                                m.id_manifestacao,
+                                            }),
+                                          },
+                                        )
+                                          .then((r) => r.json())
+                                          .then((d) => {
+                                            if (d.erro) {
+                                              alert(d.erro);
+                                              return;
+                                            }
+                                            carregarManifestacoes();
+                                          });
+                                      });
+                                      setModalConfirmar(true);
+                                    }}
+                                    className="bg-red-100 text-red-600 w-7 h-7 rounded-lg flex items-center justify-center hover:bg-red-200 transition-colors"
+                                    title="Excluir"
+                                  >
+                                    <i className="bi bi-trash text-xs"></i>
+                                  </button>
+                                )}
+                              </div>
+                            </td>
+                          </>
                         )}
                       </tr>
                     ))}
@@ -551,6 +572,7 @@ export default function GerenciarManifestacoes() {
           </div>
         )}
 
+        {/* ============ GRUPO ============ */}
         {subAba === "grupo" && (
           <div className="space-y-4">
             <div className="flex justify-end">
@@ -718,6 +740,41 @@ export default function GerenciarManifestacoes() {
                                       ></i>
                                     </button>
                                   )}
+                                  {/* 🗑️ EXCLUIR GRUPO */}
+                                  {!GRP_SISTEMA.includes(g.codigo) && (
+                                    <button
+                                      onClick={() => {
+                                        setAcaoConfirmar(() => () => {
+                                          fetch(
+                                            "/api/admin/grupo_manifestacao/excluir",
+                                            {
+                                              method: "DELETE",
+                                              headers: {
+                                                "Content-Type":
+                                                  "application/json",
+                                              },
+                                              body: JSON.stringify({
+                                                id_grupo: g.id_grupo,
+                                              }),
+                                            },
+                                          )
+                                            .then((r) => r.json())
+                                            .then((d) => {
+                                              if (d.erro) {
+                                                alert(d.erro);
+                                                return;
+                                              }
+                                              carregarGrupos();
+                                            });
+                                        });
+                                        setModalConfirmar(true);
+                                      }}
+                                      className="bg-red-100 text-red-600 w-7 h-7 rounded-lg flex items-center justify-center hover:bg-red-200 transition-colors"
+                                      title="Excluir"
+                                    >
+                                      <i className="bi bi-trash text-xs"></i>
+                                    </button>
+                                  )}
                                 </div>
                               </td>
                             </>
@@ -732,6 +789,7 @@ export default function GerenciarManifestacoes() {
           </div>
         )}
 
+        {/* ============ TIPO ============ */}
         {subAba === "tipo" && (
           <div className="space-y-4">
             <div className="flex justify-end">
@@ -896,6 +954,41 @@ export default function GerenciarManifestacoes() {
                                       <i
                                         className={`bi ${t.ativo === 1 ? "bi-toggle-on" : "bi-toggle-off"} text-xs`}
                                       ></i>
+                                    </button>
+                                  )}
+                                  {/* 🗑️ EXCLUIR TIPO */}
+                                  {!TIP_SISTEMA.includes(t.codigo) && (
+                                    <button
+                                      onClick={() => {
+                                        setAcaoConfirmar(() => () => {
+                                          fetch(
+                                            "/api/admin/tipo_manifestacao/excluir",
+                                            {
+                                              method: "DELETE",
+                                              headers: {
+                                                "Content-Type":
+                                                  "application/json",
+                                              },
+                                              body: JSON.stringify({
+                                                id_tipo: t.id_tipo,
+                                              }),
+                                            },
+                                          )
+                                            .then((r) => r.json())
+                                            .then((d) => {
+                                              if (d.erro) {
+                                                alert(d.erro);
+                                                return;
+                                              }
+                                              carregarTipos();
+                                            });
+                                        });
+                                        setModalConfirmar(true);
+                                      }}
+                                      className="bg-red-100 text-red-600 w-7 h-7 rounded-lg flex items-center justify-center hover:bg-red-200 transition-colors"
+                                      title="Excluir"
+                                    >
+                                      <i className="bi bi-trash text-xs"></i>
                                     </button>
                                   )}
                                 </div>
