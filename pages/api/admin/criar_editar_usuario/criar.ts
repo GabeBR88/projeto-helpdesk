@@ -1,6 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import pool from "@/lib/db";
 import { RowDataPacket } from "mysql2";
+import bcrypt from "bcryptjs";
 
 export default async function handler(
   req: NextApiRequest,
@@ -36,19 +37,40 @@ export default async function handler(
 
   try {
     // Verifica se username já existe
-    const [existente] = await pool.query<RowDataPacket[]>(
+    const [userExistente] = await pool.query<RowDataPacket[]>(
       "SELECT id_user FROM tbl_funcionarios WHERE username = ?",
       [username],
     );
-
-    if (existente && existente.length > 0) {
+    if (userExistente && userExistente.length > 0) {
       return res.status(400).json({ erro: "Nome de usuário já existe" });
     }
 
+    // Verifica se e-mail já existe
+    const [emailExistente] = await pool.query<RowDataPacket[]>(
+      "SELECT id_user FROM tbl_funcionarios WHERE email_user = ?",
+      [email_user],
+    );
+    if (emailExistente && emailExistente.length > 0) {
+      return res.status(400).json({ erro: "E-mail já cadastrado" });
+    }
+
+    // Verifica se telefone já existe (se informado)
+    if (telefone) {
+      const [telExistente] = await pool.query<RowDataPacket[]>(
+        "SELECT id_user FROM tbl_funcionarios WHERE telefone = ?",
+        [telefone],
+      );
+      if (telExistente && telExistente.length > 0) {
+        return res.status(400).json({ erro: "Telefone já cadastrado" });
+      }
+    }
+
+    const senhaHash = await bcrypt.hash(senha, 10);
+
     await pool.query(
       `INSERT INTO tbl_funcionarios 
-       (nome_user, sobrenome_user, genero, email_user, telefone, perfil, username, senha_hash, ativo) 
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+   (nome_user, sobrenome_user, genero, email_user, telefone, perfil, username, senha_hash, ativo) 
+   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         nome_user,
         sobrenome_user,
@@ -57,7 +79,7 @@ export default async function handler(
         telefone || null,
         perfil,
         username,
-        senha,
+        senhaHash,
         ativo || 1,
       ],
     );

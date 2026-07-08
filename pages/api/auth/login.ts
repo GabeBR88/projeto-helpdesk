@@ -1,6 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import pool from "../../../lib/db";
 import { ValidarUsuario } from "@/types/interfaces";
+import bcrypt from "bcryptjs";
 
 export default async function handler(
   req: NextApiRequest,
@@ -39,7 +40,8 @@ export default async function handler(
         .json({ erro: motivos[funcionario.ativo] || "Acesso não permitido" });
     }
 
-    if (senha !== funcionario.senha_hash) {
+    const senhaValida = await bcrypt.compare(senha, funcionario.senha_hash);
+    if (!senhaValida) {
       return res.status(401).json({ erro: "Usuário ou Senha inválidos" });
     }
 

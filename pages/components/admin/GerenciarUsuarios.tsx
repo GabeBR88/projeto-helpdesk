@@ -24,7 +24,6 @@ export default function GerenciarUsuarios() {
   const [novoTelefone, setNovoTelefone] = useState("");
   const [novoPerfil, setNovoPerfil] = useState("usuario");
   const [novoUsername, setNovoUsername] = useState("");
-  const [novaSenha, setNovaSenha] = useState("");
 
   const [modalSenha, setModalSenha] = useState(false);
   const [resetSenhaId, setResetSenhaId] = useState<number | null>(null);
@@ -33,6 +32,8 @@ export default function GerenciarUsuarios() {
   const [acaoConfirmar, setAcaoConfirmar] = useState<() => void>(() => {});
   const [modalSucesso, setModalSucesso] = useState(false);
   const [mensagemSucesso, setMensagemSucesso] = useState("");
+  const [modalErro, setModalErro] = useState(false);
+  const [mensagemErro, setMensagemErro] = useState("");
 
   const formatarTelefone = (valor: string): string => {
     // Remove tudo que não for número
@@ -113,12 +114,15 @@ export default function GerenciarUsuarios() {
       !novoNome.trim() ||
       !novoSobrenome.trim() ||
       !novoEmail.trim() ||
-      !novoUsername.trim() ||
-      !novaSenha.trim()
+      !novoUsername.trim()
     ) {
-      alert("Preencha todos os campos obrigatórios");
+      setMensagemErro("Preencha todos os campos obrigatórios");
+      setModalErro(true);
       return;
     }
+
+    const senhaPadrao = `${novoNome.trim()}123`;
+
     setAcaoConfirmar(() => () => {
       fetch("/api/admin/criar_editar_usuario/criar", {
         method: "POST",
@@ -131,14 +135,15 @@ export default function GerenciarUsuarios() {
           telefone: novoTelefone,
           perfil: novoPerfil,
           username: novoUsername,
-          senha: novaSenha,
+          senha: senhaPadrao,
           ativo: 1,
         }),
       })
         .then((r) => r.json())
         .then((d) => {
           if (d.erro) {
-            alert(d.erro);
+            setMensagemErro(d.erro);
+            setModalErro(true);
             return;
           }
           carregarUsuarios();
@@ -150,7 +155,11 @@ export default function GerenciarUsuarios() {
           setNovoTelefone("");
           setNovoPerfil("usuario");
           setNovoUsername("");
-          setNovaSenha("");
+          // Modal de sucesso
+          setMensagemSucesso(
+            `Usuário criado com sucesso!\nSenha: ${senhaPadrao}`,
+          );
+          setModalSucesso(true);
         });
     });
     setModalConfirmar(true);
@@ -556,17 +565,12 @@ export default function GerenciarUsuarios() {
                 </div>
               </div>
               <div>
-                <label className="text-[10px] font-bold uppercase text-(--color-monochromatic-1) block mb-1">
-                  Senha <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  value={novaSenha}
-                  onChange={(e) => setNovaSenha(e.target.value)}
-                  placeholder="Senha inicial"
-                  className="w-full px-2.5 py-2 text-xs border-2 border-(--color-monochromatic-4) focus:border-(--color-monochromatic-1) rounded-lg outline-none transition-all"
-                />
+                <p className="pt-3 text-xs text-(--color-monochromatic-2) text-center">
+                  Senha será criada automaticamente
+                  <span className="text-red-500">*</span>
+                </p>
               </div>
+
               <div className="flex justify-end gap-2 pt-2">
                 <button
                   onClick={() => setModalNovo(false)}
@@ -598,14 +602,41 @@ export default function GerenciarUsuarios() {
               <i className="bi bi-check-circle text-green-600 text-xl"></i>
             </div>
             <h3 className="text-sm font-bold text-(--color-monochromatic-1) mb-2">
-              Senha Resetada!
+              Operação realizada!
             </h3>
-            <p className="text-xs text-(--color-monochromatic-2) mb-2 whitespace-pre-line">
+            <p className="text-xs text-(--color-monochromatic-2) mb-5 whitespace-pre-line">
               {mensagemSucesso}
             </p>
             <button
               onClick={() => setModalSucesso(false)}
               className="bg-(--color-monochromatic-1) text-(--color-monochromatic-5) px-4 py-2 text-xs font-bold uppercase tracking-wider rounded-lg hover:bg-(--color-monochromatic-2) transition-colors"
+            >
+              <i className="bi bi-check-lg mr-1"></i>OK
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Erro */}
+      {modalErro && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div
+            className="absolute inset-0 bg-black/50"
+            onClick={() => setModalErro(false)}
+          ></div>
+          <div className="relative bg-(--color-monochromatic-5) rounded-2xl shadow-xl w-full max-w-sm p-6 text-center">
+            <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <i className="bi bi-exclamation-triangle text-red-600 text-xl"></i>
+            </div>
+            <h3 className="text-sm font-bold text-(--color-monochromatic-1) mb-2">
+              Atenção!
+            </h3>
+            <p className="text-xs text-(--color-monochromatic-2) mb-5">
+              {mensagemErro}
+            </p>
+            <button
+              onClick={() => setModalErro(false)}
+              className="bg-red-500 text-white px-4 py-2 text-xs font-bold uppercase tracking-wider rounded-lg hover:bg-red-600 transition-colors"
             >
               <i className="bi bi-check-lg mr-1"></i>OK
             </button>

@@ -1,5 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import pool from "@/lib/db";
+import bcrypt from "bcryptjs";
 
 export default async function handler(
   req: NextApiRequest,
@@ -15,9 +16,10 @@ export default async function handler(
   }
 
   try {
+    const senhaHash = await bcrypt.hash(nova_senha, 10);
     await pool.query(
       "UPDATE tbl_funcionarios SET senha_hash = ? WHERE id_user = ?",
-      [nova_senha, id_user],
+      [senhaHash, id_user],
     );
     res.status(200).json({ mensagem: "Senha resetada com sucesso!" });
   } catch {

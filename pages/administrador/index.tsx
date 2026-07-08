@@ -7,6 +7,7 @@ import GerenciarStatus from "../components/admin/GerenciarStatus";
 import GerenciarSetores from "../components/admin/GerenciarSetores";
 import GerenciarUsuarios from "../components/admin/GerenciarUsuarios";
 import GerenciarManifestacoes from "../components/admin/GerenciarManifestacoes";
+import GerenciarSolicitacoes from "../components/admin/GerenciarSolicitacoes";
 import { DadosAdmin } from "@/types/interfaces";
 
 export default function PainelAdmin() {
@@ -62,6 +63,12 @@ export default function PainelAdmin() {
       icon: "bi-speedometer2",
       label: "Dashboard",
       desc: "Visão geral do sistema",
+    },
+    {
+      id: "solicitacoes",
+      icon: "bi-bell-fill",
+      label: "Solicitações",
+      desc: "Pedidos de reset de senha",
     },
     {
       id: "usuarios",
@@ -175,6 +182,7 @@ export default function PainelAdmin() {
             {abaAtiva === "setores" && <GerenciarSetores />}
             {abaAtiva === "manifestacoes" && <GerenciarManifestacoes />}
             {abaAtiva === "status" && <GerenciarStatus />}
+            {abaAtiva === "solicitacoes" && <GerenciarSolicitacoes />}
           </main>
         </div>
         <FooterEstilizacao />

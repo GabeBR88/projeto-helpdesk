@@ -159,12 +159,12 @@ export default function PaginaLogin() {
                   </form>
 
                   <div className="flex items-center justify-between mt-6 pt-6 border-t border-(--color-monochromatic-4)">
-                    <p className="text-(--color-monochromatic-3) text-xs hover:text-(--color-monochromatic-1) cursor-pointer transition-colors">
+                    <p
+                      onClick={() => router.push("/esqueci-senha")}
+                      className="text-(--color-monochromatic-3) text-xs hover:text-(--color-monochromatic-1) cursor-pointer transition-colors"
+                    >
                       <i className="bi bi-question-circle mr-1"></i> Esqueci
                       minha senha
-                    </p>
-                    <p className="text-(--color-monochromatic-3) text-xs hover:text-(--color-monochromatic-1) cursor-pointer transition-colors">
-                      <i className="bi bi-headset mr-1"></i> Suporte Técnico
                     </p>
                   </div>
                 </div>

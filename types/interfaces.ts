@@ -251,3 +251,17 @@ export interface UsuarioItem {
   data_cadastro: string;
   ultimo_acesso: string | null;
 }
+
+export interface SolicitacaoItem {
+  id_solicitacao: number;
+  id_user: number;
+  status: string;
+  data_solicitacao: string;
+  data_atendimento: string | null;
+  nome_user: string;
+  sobrenome_user: string;
+  username: string;
+  email_user: string;
+  admin_username: string | null;
+  admin_nome: string | null;
+}
