@@ -1,40 +1,154 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/pages/api-reference/create-next-app).
+# HelpDesk - Sistema de Chamados
 
-## Getting Started
+Sistema completo de gerenciamento de chamados (help desk) desenvolvido com **Next.js**, **TypeScript**, **MySQL** e **Tailwind CSS**.
 
-First, run the development server:
+---
+
+## Funcionalidades
+
+### Tela Login
+
+- Acesso através de Usuário e Senha
+- Solicitação de reset de senha
+
+### Perfil Usuário
+
+- Abertura de chamados com upload de anexos
+- Acompanhamento em tempo real do status
+- Visualização do histórico completo de atendimento
+
+### Perfil Service Desk
+
+- Painel com cards indicativos (pendentes, atribuídos, redirecionados, fora do prazo, concluídos do dia, finalizados do dia)
+- Atendimento de chamados com registro detalhado
+- Redirecionamento entre técnicos
+- Comentários adicionais nos registros
+- Visualização de anexos enviados pelo usuário
+- Histórico dos protocolos finalizados
+
+### Perfil Administrador
+
+- CRUD completo de usuários (com senha automática Nome123)
+- CRUD de setores, status, manifestações, grupos e tipos
+- Reset de senha com envio de e-mail automático
+- Auditoria completa (tbl_logs)
+- Gerenciamento de solicitações de reset
+
+### Segurança
+
+- Senhas criptografadas com bcrypt
+- Proteção de rotas por perfil (proxy)
+- Senha temporária com redirecionamento para criação
+- Bloqueio de copiar/colar na criação de senha
+- Validação de força de senha
+
+---
+
+## Tecnologias
+
+| Tecnologia          | Uso                       |
+| ------------------- | ------------------------- |
+| **Next.js 16**      | Framework React com SSR   |
+| **TypeScript**      | Tipagem estática          |
+| **MySQL**           | Banco de dados relacional |
+| **Tailwind CSS 4**  | Estilização               |
+| **Bootstrap Icons** | Ícones                    |
+| **bcryptjs**        | Criptografia de senhas    |
+| **Nodemailer**      | Envio de e-mails          |
+| **Multer**          | Upload de arquivos        |
+| **UUID**            | Nomes únicos para anexos  |
+
+---
+
+## Instalação
+
+### Pré-requisitos
+
+- Node.js e npm
+- MySQL em execução
+- Git
+
+### 1. Clone o repositório
+
+```bash
+git clone https://github.com/GabeBR88/projeto-helpdesk
+cd projeto-helpdesk
+```
+
+### 2. Instale as dependências
+
+```bash
+npm install
+```
+
+### 3. Configure o banco de dados
+
+O arquivo [database/schema.sql](database/schema.sql) contém todas as tabelas necessárias. O script já cria o banco `db_helpdesk`.
+
+**Via terminal:**
+
+```bash
+mysql -u root -p < database/schema.sql
+```
+
+### 4. Configure as variáveis de ambiente
+
+Copie o [.env.example](.env.example) para `.env` e preencha:
+
+```env
+DB_HOST=localhost
+DB_PORT=3306
+DB_USER=seu_usuario
+DB_PASSWORD=sua_senha
+DB_NAME=db_helpdesk
+
+EMAIL_HOST=smtp.gmail.com
+EMAIL_PORT=587
+EMAIL_USER=seuemail@gmail.com
+EMAIL_PASS=sua_senha_app
+NEXT_PUBLIC_URL=http://localhost:3000
+```
+
+### 5. Execute o projeto
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Acesse: http://localhost:3000
 
-You can start editing the page by modifying `pages/index.tsx`. The page auto-updates as you edit the file.
+### 6. Primeiro acesso
 
-[API routes](https://nextjs.org/docs/pages/building-your-application/routing/api-routes) can be accessed on [http://localhost:3000/api/hello](http://localhost:3000/api/hello). This endpoint can be edited in `pages/api/hello.ts`.
+- Acesse a aplicação em http://localhost:3000
+- Crie usuários no painel administrativo
+- Para redefinição de senha, o sistema utiliza a senha padrão `Nome123`
 
-The `pages/api` directory is mapped to `/api/*`. Files in this directory are treated as [API routes](https://nextjs.org/docs/pages/building-your-application/routing/api-routes) instead of React pages.
+### 7. Perfis de Acesso
 
-This project uses [`next/font`](https://nextjs.org/docs/pages/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Perfil: usuario
+Descrição: Usuário comum
+Acesso: Abre chamados, acompanha status, solicita reset
 
-## Learn More
+Perfil: servicedesk
+Descrição: Técnico de atendimento
+Acesso: Atende chamados, redireciona, registra ocorrências
 
-To learn more about Next.js, take a look at the following resources:
+Perfil: administrador
+Descrição: Administrador do sistema
+Acesso: Gerencia usuários, setores, status, manifestações
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn-pages-router) - an interactive Next.js tutorial.
+### 8. Configuração de E-mail
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Para o envio de e-mails (reset de senha), é necessário configurar uma senha de app do Gmail:
 
-## Deploy on Vercel
+Acesse: https://myaccount.google.com/apppasswords
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Gere uma senha para o app "HelpDesk"
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/pages/building-your-application/deploying) for more details.
+Cole no `.env` em `EMAIL_PASS`
+
+### Licença
+
+Este projeto é para fins de portfólio.
+
+Desenvolvido por Gabriel Brito de Oliveira

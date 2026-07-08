@@ -3,6 +3,7 @@ import pool from "@/lib/db";
 import { RowDataPacket } from "mysql2";
 import { enviarEmailReset } from "@/lib/email";
 import bcrypt from "bcryptjs";
+import { registrarLog } from "@/lib/logs";
 
 export default async function handler(
   req: NextApiRequest,
@@ -62,6 +63,13 @@ export default async function handler(
         novaSenha,
       });
     }
+
+    // Registrar log (id já foi extraído acima)
+    await registrarLog(
+      id,
+      "atender_solicitacao",
+      `Atendeu solicitação de reset do usuário ${usuario.username}`,
+    );
 
     res
       .status(200)

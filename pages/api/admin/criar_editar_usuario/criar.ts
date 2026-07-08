@@ -2,6 +2,7 @@ import type { NextApiRequest, NextApiResponse } from "next";
 import pool from "@/lib/db";
 import { RowDataPacket } from "mysql2";
 import bcrypt from "bcryptjs";
+import { registrarLog } from "@/lib/logs";
 
 export default async function handler(
   req: NextApiRequest,
@@ -83,6 +84,17 @@ export default async function handler(
         ativo || 1,
       ],
     );
+
+    const usuarioCookie = req.cookies.usuario;
+    if (usuarioCookie) {
+      const { id } = JSON.parse(usuarioCookie);
+      await registrarLog(
+        id,
+        "criar_usuario",
+        `Criou o usuário ${username} (${nome_user} ${sobrenome_user}) - Perfil: ${perfil}`,
+      );
+    }
+
     res.status(201).json({ mensagem: "Usuário criado com sucesso!" });
   } catch {
     res.status(500).json({ erro: "Erro ao criar usuário" });

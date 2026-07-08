@@ -1,5 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import pool from "@/lib/db";
+import { registrarLog } from "@/lib/logs";
 
 export default async function handler(
   req: NextApiRequest,
@@ -16,6 +17,16 @@ export default async function handler(
       "UPDATE tbl_grupo_manifestacao SET codigo = ?, descricao = ?, ativo = ? WHERE id_grupo = ?",
       [codigo, descricao, ativo, id_grupo],
     );
+
+    const usuarioCookie = req.cookies.usuario;
+    if (usuarioCookie) {
+      const { id } = JSON.parse(usuarioCookie);
+      await registrarLog(
+        id,
+        "atualizar_grupo",
+        `Atualizou o grupo "${descricao}"`,
+      );
+    }
     res.status(200).json({ mensagem: "Grupo atualizado!" });
   } catch {
     res.status(500).json({ erro: "Erro ao atualizar" });

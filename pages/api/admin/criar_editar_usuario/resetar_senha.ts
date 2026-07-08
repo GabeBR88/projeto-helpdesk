@@ -1,6 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import pool from "@/lib/db";
 import bcrypt from "bcryptjs";
+import { registrarLog } from "@/lib/logs";
 
 export default async function handler(
   req: NextApiRequest,
@@ -21,6 +22,16 @@ export default async function handler(
       "UPDATE tbl_funcionarios SET senha_hash = ? WHERE id_user = ?",
       [senhaHash, id_user],
     );
+
+    const usuarioCookie = req.cookies.usuario;
+    if (usuarioCookie) {
+      const { id } = JSON.parse(usuarioCookie);
+      await registrarLog(
+        id,
+        "resetar_senha",
+        `Resetou a senha do usuário ID ${id_user}`,
+      );
+    }
     res.status(200).json({ mensagem: "Senha resetada com sucesso!" });
   } catch {
     res.status(500).json({ erro: "Erro ao resetar senha" });

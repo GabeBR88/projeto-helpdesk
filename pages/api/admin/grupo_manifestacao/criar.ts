@@ -1,5 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import pool from "@/lib/db";
+import { registrarLog } from "@/lib/logs";
 
 export default async function handler(
   req: NextApiRequest,
@@ -17,6 +18,13 @@ export default async function handler(
       "INSERT INTO tbl_grupo_manifestacao (id_manifestacao, codigo, descricao, ativo) VALUES (?, ?, ?, ?)",
       [id_manifestacao, codigo, descricao, ativo],
     );
+
+    const usuarioCookie = req.cookies.usuario;
+    if (usuarioCookie) {
+      const { id } = JSON.parse(usuarioCookie);
+      await registrarLog(id, "criar_grupo", `Criou o grupo "${descricao}"`);
+    }
+
     res.status(201).json({ mensagem: "Grupo criado com sucesso!" });
   } catch (error) {
     console.error("Erro ao criar grupo:", error); // ← ADICIONE ISSO
