@@ -115,8 +115,6 @@ NEXT_PUBLIC_URL=http://localhost:3000
 npm run dev
 ```
 
-Acesse: http://localhost:3000
-
 ### 6. Primeiro acesso
 
 - Acesse a aplicação em http://localhost:3000
@@ -125,17 +123,11 @@ Acesse: http://localhost:3000
 
 ### 7. Perfis de Acesso
 
-Perfil: usuario
-Descrição: Usuário comum
-Acesso: Abre chamados, acompanha status, solicita reset
-
-Perfil: servicedesk
-Descrição: Técnico de atendimento
-Acesso: Atende chamados, redireciona, registra ocorrências
-
-Perfil: administrador
-Descrição: Administrador do sistema
-Acesso: Gerencia usuários, setores, status, manifestações
+| Perfil          | Descrição                | Acesso                                              |
+| --------------- | ------------------------ | --------------------------------------------------- |
+| `usuario`       | Usuário comum            | Abre chamados, acompanha status e solicita reset    |
+| `servicedesk`   | Técnico de atendimento   | Atende chamados, redireciona e registra ocorrências |
+| `administrador` | Administrador do sistema | Gerencia usuários, setores, status e manifestações  |
 
 ### 8. Configuração de E-mail
 
