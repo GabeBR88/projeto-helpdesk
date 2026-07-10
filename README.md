@@ -139,6 +139,43 @@ Gere uma senha para o app "HelpDesk"
 
 Cole no `.env` em `EMAIL_PASS`
 
+## 📸 Screenshots
+
+### Tela de Login
+
+![Tela de Login](screenshots/login.png)
+
+### Perfil Usuário
+
+![Painel do Usuário](screenshots/usuario1.png)
+![Formulário de Abertura de Chamado](screenshots/usuario2.png)
+![Modal de Consulta do Chamado](screenshots/usuario3.png)
+
+### Perfil Service Desk
+
+![Painel Service Desk](screenshots/servicedesk1.png)
+![Tabela de Chamados Pendentes](screenshots/servicedesk2.png)
+![Painel de Atendimento](screenshots/servicedesk3.png)
+![Histórico do Chamado](screenshots/servicedesk4.png)
+
+### Perfil Administrador
+
+![Dashboard Admin](screenshots/administrador1.png)
+![Gerenciamento de Usuários](screenshots/administrador2.png)
+![Gerenciamento de Manifestações](screenshots/administrador3.png)
+
+### Segurança e Senhas
+
+![Criação de Nova Senha](screenshots/criacao_senha.png)
+![Solicitação de Reset de Senha](screenshots/reset_senha.png)
+
+### Responsividade
+
+![Versão Mobile](screenshots/responsividade1.png)
+![Versão Tablet](screenshots/responsividade2.png)
+
+---
+
 ### Licença
 
 Este projeto é para fins de portfólio.
